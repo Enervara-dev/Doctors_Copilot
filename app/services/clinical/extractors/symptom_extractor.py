@@ -43,6 +43,7 @@ class SymptomExtractor:
                     "start": match.start()
                 })
                 
+        # Also check for explicit single duration terms (like today, yesterday)
         for term in self.duration_terms:
             pattern = r'\b' + re.escape(term) + r'\b'
             for match in re.finditer(pattern, clause, re.IGNORECASE):
@@ -51,9 +52,67 @@ class SymptomExtractor:
                         "value": self._clean_duration_value(term),
                         "start": match.start()
                     })
-        return durations
+                
+        # Deduplicate overlapping matches (prefer longer match)
+        durations.sort(key=lambda d: len(d["value"]), reverse=True)
+        unique_durations = []
+        for d in durations:
+            if not any(u["start"] <= d["start"] < u["start"] + len(u["value"]) for u in unique_durations):
+                unique_durations.append(d)
+                
+        return unique_durations
 
-    def extract_symptoms(self, text: str, speaker_id: Optional[str] = None, session_id: Optional[str] = None, section: str = "Chief Complaint") -> List[SymptomEntity]:
+    def _detect_temporal_features(self, clause: str) -> dict:
+        features = {"onset": None, "progression": None, "frequency": None, "character": None}
+        c_lower = clause.lower()
+        
+        # Onset
+        onset_patterns = [
+            r"\b(started\s+(?:yesterday|today|last\s+night|this\s+morning|\d+\s+days?\s+ago|\d+\s+weeks?\s+ago))\b",
+            r"\b(began\s+(?:yesterday|today|last\s+night|this\s+morning|\d+\s+days?\s+ago|\d+\s+weeks?\s+ago))\b",
+            r"\b(since\s+(?:yesterday|today|last\s+night|this\s+morning|\d+\s+days?\s+ago|\d+\s+weeks?\s+ago))\b",
+            r"\bonset\s+since\s+([^\.]+)\b"
+        ]
+        for pat in onset_patterns:
+            m = re.search(pat, c_lower)
+            if m:
+                features["onset"] = m.group(1).strip()
+                break
+                
+        # Progression
+        prog_patterns = [
+            r"\b(worsening|getting\s+worse|progressive|progressively\s+worse)\b",
+            r"\b(improving|getting\s+better|resolving|resolved)\b"
+        ]
+        for pat in prog_patterns:
+            m = re.search(pat, c_lower)
+            if m:
+                features["progression"] = m.group(1).strip()
+                break
+                
+        # Frequency
+        freq_patterns = [
+            r"\b(intermittent|constant|episodic|on\s+and\s+off|comes\s+and\s+goes)\b"
+        ]
+        for pat in freq_patterns:
+            m = re.search(pat, c_lower)
+            if m:
+                features["frequency"] = m.group(1).strip()
+                break
+                
+        # Character
+        char_patterns = [
+            r"\b(sudden\s+onset|sudden|abrupt|gradual\s+onset|gradual)\b"
+        ]
+        for pat in char_patterns:
+            m = re.search(pat, c_lower)
+            if m:
+                features["character"] = m.group(1).strip()
+                break
+                
+        return features
+
+    def extract_symptoms(self, text: str, speaker_id: Optional[str] = None, session_id: Optional[str] = None, section: str = "Chief Complaint", utterance_id: Optional[str] = None) -> List[SymptomEntity]:
         results = []
         if not text or not text.strip():
             return results
@@ -76,12 +135,10 @@ class SymptomExtractor:
                 
                 # Search symptoms
                 for canonical, synonyms in self.symptoms_dict.items():
-                    # We check the canonical term and all synonyms
                     all_syns = [canonical] + synonyms
                     for term in all_syns:
                         pattern = r'\b' + re.escape(term) + r'\b'
                         for match in re.finditer(pattern, clause, re.IGNORECASE):
-                            # Overlap check
                             span_start = match.start()
                             span_end = match.end()
                             if not any(s["start"] <= span_start and span_end <= s["end"] for s in detected_symptoms):
@@ -117,31 +174,50 @@ class SymptomExtractor:
                         return min(symptoms, key=lambda s: abs(s["start"] - pos))
 
                     severity_mapping = {}
+                    # Filter out severities modifying non-symptoms (e.g. "mild infection")
+                    valid_severities = []
                     for sev in detected_severities:
-                        closest_sym = find_closest_symptom(sev["start"], detected_symptoms)
-                        if closest_sym:
-                            key = (closest_sym["name"], closest_sym["start"])
-                            severity_mapping[key] = sev
+                        sev_val = sev["value"].lower()
+                        sev_index = clause.lower().find(sev_val)
+                        if sev_index != -1:
+                            following = clause.lower()[sev_index + len(sev_val):].strip()
+                            if re.match(r'^(?:infection|illness|viral|virus|case|cold|symptoms)\b', following):
+                                continue
+                        valid_severities.append(sev)
+
+                    if len(valid_severities) == 1:
+                        # Distribute single modifier to all symptoms in listed clause
+                        for sym in detected_symptoms:
+                            key = (sym["name"], sym["start"])
+                            severity_mapping[key] = valid_severities[0]
+                    else:
+                        for sev in valid_severities:
+                            closest_sym = find_closest_symptom(sev["start"], detected_symptoms)
+                            if closest_sym:
+                                key = (closest_sym["name"], closest_sym["start"])
+                                severity_mapping[key] = sev
 
                     duration_mapping = {}
-                    for dur in detected_durations:
-                        closest_sym = find_closest_symptom(dur["start"], detected_symptoms)
-                        if closest_sym:
-                            key = (closest_sym["name"], closest_sym["start"])
-                            duration_mapping[key] = dur
+                    if len(detected_durations) == 1:
+                        # Distribute single modifier to all symptoms in listed clause
+                        for sym in detected_symptoms:
+                            key = (sym["name"], sym["start"])
+                            duration_mapping[key] = detected_durations[0]
+                    else:
+                        for dur in detected_durations:
+                            closest_sym = find_closest_symptom(dur["start"], detected_symptoms)
+                            if closest_sym:
+                                key = (closest_sym["name"], closest_sym["start"])
+                                duration_mapping[key] = dur
 
                     for sym in detected_symptoms:
                         key = (sym["name"], sym["start"])
                         
                         sev_match = severity_mapping.get(key)
                         associated_severity = sev_match["value"] if sev_match else None
-                        if not associated_severity and len(detected_symptoms) == 1 and detected_severities:
-                            associated_severity = detected_severities[0]["value"]
 
                         dur_match = duration_mapping.get(key)
                         associated_duration = dur_match["value"] if dur_match else None
-                        if not associated_duration and len(detected_symptoms) == 1 and detected_durations:
-                            associated_duration = detected_durations[0]["value"]
 
                         # Negation detection
                         is_neg = self.negation_detector.is_negated(clause, sym["matched_text"], sym["start"], sym["end"])
@@ -150,7 +226,7 @@ class SymptomExtractor:
                         expected_speaker = (speaker_id == "patient")
 
                         # Ambiguity and confirmation features can be integrated via the context manager
-                        exact_match = (sym["matched_text"].lower() == sym["name"].lower())
+                        exact_match = (sym["matched_text"].lower() == sym["name"].replace("symptom_", "").replace("_", " ").lower())
                         synonym_match = not exact_match
 
                         # Check for negation ambiguity (like hedging words in the clause)
@@ -167,12 +243,24 @@ class SymptomExtractor:
                             negation_ambiguity=negation_ambiguity
                         )
 
+                        temp_features = self._detect_temporal_features(clause)
+                        display_name = sym["name"].replace("symptom_", "").replace("_", " ").capitalize()
+
                         results.append(SymptomEntity(
                             name=sym["name"],
+                            display_name=display_name,
                             severity=associated_severity,
                             duration=associated_duration,
                             present=not is_neg,
-                            confidence=confidence_score
+                            confidence=confidence_score,
+                            onset=temp_features["onset"],
+                            progression=temp_features["progression"],
+                            frequency=temp_features["frequency"],
+                            character=temp_features["character"],
+                            source_text=sentence,
+                            utterance_id=utterance_id,
+                            speaker=speaker_id
                         ))
 
         return results
+

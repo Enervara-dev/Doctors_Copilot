@@ -1,0 +1,17 @@
+{
+  "session_id": "consultation-xyz-c74769",
+  "timestamp": 1783147966.2592824,
+  "pyannote_segments": [],
+  "words": [],
+  "word_speaker_mapping": [],
+  "final_events": [
+    {
+      "event_id": "ded9dc3d-42de-4589-b9bb-9840d42463fa",
+      "sequence_number": 8,
+      "speaker_id": "UNKNOWN",
+      "transcript": "ஆ, சரி, சரி. ஆ, சரி, சரி.",
+      "start_time": 7.383333333333334,
+      "end_time": 8.983333333333334
+    }
+  ]
+}

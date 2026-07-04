@@ -14,7 +14,12 @@ from typing import Any, Dict, List, Optional, Tuple
 
 from clinical_intelligence.rule_engine.explainability import ExplainabilityTracer
 from clinical_intelligence.rule_engine.matcher import SymptomMatchResult
-from clinical_intelligence.rule_engine.models import CandidateDiagnosis
+from clinical_intelligence.rule_engine.models import (
+    CandidateDiagnosis,
+    ClinicalGuideline,
+    RuleMetadata,
+    ClinicalScoreResult,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -33,11 +38,12 @@ def _parse_vitals(vital_signs: Dict[str, Optional[str]]) -> Dict[str, Optional[f
             parsed["bp_systolic"] = float(match.group(1))
             parsed["bp_diastolic"] = float(match.group(2))
 
-    pulse_raw = vital_signs.get("pulse")
+    pulse_raw = vital_signs.get("pulse") or vital_signs.get("heart_rate")
     if pulse_raw:
         match = re.search(r'(\d+)', str(pulse_raw))
         if match:
             parsed["pulse"] = float(match.group(1))
+            parsed["heart_rate"] = float(match.group(1))
 
     temp_raw = vital_signs.get("temperature")
     if temp_raw:
@@ -50,6 +56,13 @@ def _parse_vitals(vital_signs: Dict[str, Optional[str]]) -> Dict[str, Optional[f
         match = re.search(r'(\d+(?:\.\d+)?)', str(spo2_raw))
         if match:
             parsed["spo2"] = float(match.group(1))
+
+    rr_raw = vital_signs.get("respiratory_rate") or vital_signs.get("respiration_rate")
+    if rr_raw:
+        match = re.search(r'(\d+)', str(rr_raw))
+        if match:
+            parsed["respiratory_rate"] = float(match.group(1))
+            parsed["respiration_rate"] = float(match.group(1))
 
     return parsed
 
@@ -106,6 +119,7 @@ class DiseaseScorer:
         gender: Optional[str],
         identified_risk_factor_ids: List[str],
         tracer: ExplainabilityTracer,
+        clinical_scores: List[ClinicalScoreResult] = None,
     ) -> List[CandidateDiagnosis]:
         """
         Produce ranked CandidateDiagnosis records.
@@ -124,6 +138,8 @@ class DiseaseScorer:
             IDs of risk factors confirmed present for this patient.
         tracer:
             Explainability tracer.
+        clinical_scores:
+            List of evaluated clinical scores to check agreement.
         """
         parsed_vitals = _parse_vitals(vital_signs)
         candidates: List[CandidateDiagnosis] = []
@@ -219,6 +235,97 @@ class DiseaseScorer:
             )
             confidence = _clamp(raw_confidence)
 
+            # Build matched and missing rule IDs / categories
+            rules_fired = []
+            rules_not_fired = []
+            cardinal_syms = disease.get("cardinal_symptoms", [])
+            supportive_syms = disease.get("supportive_symptoms", [])
+
+            for s in cardinal_syms:
+                s_name = s.get("name", "").lower().strip()
+                if s_name in match.matched_cardinal:
+                    rules_fired.append(f"{match.disease_id}_cardinal_{s_name.replace(' ', '_')}")
+                else:
+                    rules_not_fired.append(f"{match.disease_id}_cardinal_{s_name.replace(' ', '_')}")
+
+            for s in supportive_syms:
+                s_name = s.get("name", "").lower().strip()
+                if s_name in match.matched_supportive:
+                    rules_fired.append(f"{match.disease_id}_supportive_{s_name.replace(' ', '_')}")
+                else:
+                    rules_not_fired.append(f"{match.disease_id}_supportive_{s_name.replace(' ', '_')}")
+
+            for rf_id in rf_modifiers.keys():
+                if rf_id in risk_factors_active:
+                    rules_fired.append(f"{match.disease_id}_risk_{rf_id}")
+                else:
+                    rules_not_fired.append(f"{match.disease_id}_risk_{rf_id}")
+
+            for criterion in disease.get("vital_sign_criteria", []):
+                cond = criterion.get("condition", "")
+                threshold = float(criterion.get("threshold", 0))
+                if _evaluate_vital_condition(cond, threshold, parsed_vitals):
+                    rules_fired.append(f"{match.disease_id}_vital_{cond}")
+                else:
+                    rules_not_fired.append(f"{match.disease_id}_vital_{cond}")
+
+            if age_mod > 0.0:
+                rules_fired.append(f"{match.disease_id}_age_range")
+            elif age_rule:
+                rules_not_fired.append(f"{match.disease_id}_age_range")
+
+            if gender_mod > 0.0:
+                rules_fired.append(f"{match.disease_id}_gender_modifier")
+            elif gender_rule:
+                rules_not_fired.append(f"{match.disease_id}_gender_modifier")
+
+            # Extract guideline details
+            guideline_obj = None
+            guideline_data = disease.get("guideline")
+            if guideline_data and isinstance(guideline_data, dict):
+                guideline_obj = ClinicalGuideline(
+                    organization=guideline_data.get("organization", ""),
+                    guideline=guideline_data.get("guideline", ""),
+                    version=str(guideline_data.get("version", "")),
+                    recommendation=guideline_data.get("recommendation"),
+                    strength=guideline_data.get("strength"),
+                    evidence_level=guideline_data.get("evidence_level")
+                )
+
+            rule_meta_obj = RuleMetadata(
+                rule_id=disease.get("rule_id", match.disease_id),
+                rule_version=disease.get("rule_version", "1.0.0"),
+                created_date=disease.get("created_date", "2026-01-01"),
+                updated_date=disease.get("updated_date", "2026-07-03")
+            )
+
+            # Confidence Calibration
+            calib_bonus = 0.0
+            calib_bonus += 0.02 * len(risk_factors_active)
+            if guideline_obj and guideline_obj.strength == "Strong":
+                calib_bonus += 0.02
+
+            clinical_scores_used = []
+            if clinical_scores:
+                for cs in clinical_scores:
+                    is_match = False
+                    if cs.name in ("HEART Score", "TIMI") and match.disease_id in ("acs", "unstable_angina"):
+                        is_match = True
+                    elif cs.name == "Wells Score (PE)" and match.disease_id in ("pulmonary_embolism", "pe"):
+                        is_match = True
+                    elif cs.name in ("qSOFA", "NEWS2", "CURB-65") and match.disease_id in ("sepsis", "pneumonia"):
+                        is_match = True
+                    elif cs.name == "CHA2DS2-VASc" and match.disease_id in ("atrial_fibrillation", "ischemic_stroke", "stroke"):
+                        is_match = True
+                    
+                    if is_match:
+                        clinical_scores_used.append(cs.name)
+                        if any(term in cs.interpretation.lower() for term in ["high", "medium", "likely", "probable", "moderate"]):
+                            calib_bonus += 0.05
+
+            calib_bonus -= 0.02 * len(match.missing_cardinal)
+            calibrated_conf = _clamp(confidence + calib_bonus)
+
             tracer.add_step(
                 component="Scorer",
                 description=f"Final confidence computed for {match.disease_name}",
@@ -229,13 +336,14 @@ class DiseaseScorer:
                     f"gender_mod={gender_mod:.3f}",
                     f"risk_mod={risk_mod:.3f}",
                     f"negation_penalty={match.negation_penalty:.3f}",
+                    f"calib_bonus={calib_bonus:.3f}",
                 ],
-                output=f"confidence = {confidence:.3f} (clamped to [0,1])",
+                output=f"confidence = {calibrated_conf:.3f} (clamped to [0,1])",
                 confidence_delta=0.0,
             )
 
             # Filter below threshold
-            if confidence < min_threshold:
+            if calibrated_conf < min_threshold:
                 continue
 
             # Build matched rule IDs
@@ -251,26 +359,56 @@ class DiseaseScorer:
             if risk_factors_active:
                 matched_rules.append(f"{match.disease_id}_risk_factor_match")
 
-            candidates.append(
-                CandidateDiagnosis(
-                    disease_id=match.disease_id,
-                    name=match.disease_name,
-                    category=match.disease_category,
-                    confidence=round(confidence, 4),
-                    rank=rank_idx,
-                    supporting_symptoms=match.matched_cardinal + match.matched_supportive,
-                    missing_symptoms=match.missing_cardinal,
-                    negated_symptoms=match.negated_cardinal,
-                    matched_rules=matched_rules,
-                    risk_factors=risk_factors_active,
-                    supporting_evidence=supporting_evidence,
-                    reasoning_trace=list(tracer._steps),  # full trace snapshot
+            # Keep track of original confidence along with candidate
+            candidates.append((confidence, CandidateDiagnosis(
+                disease_id=match.disease_id,
+                name=match.disease_name,
+                category=match.disease_category,
+                confidence=calibrated_conf,  # Save unrounded calibrated
+                rank=rank_idx,
+                supporting_symptoms=match.matched_cardinal + match.matched_supportive,
+                missing_symptoms=match.missing_cardinal,
+                negated_symptoms=match.negated_cardinal,
+                matched_rules=matched_rules,
+                risk_factors=risk_factors_active,
+                supporting_evidence=supporting_evidence,
+                reasoning_trace=list(tracer._steps),  # full trace snapshot
+                guideline=guideline_obj,
+                rule_metadata=rule_meta_obj,
+                rules_fired=rules_fired,
+                rules_not_fired=rules_not_fired,
+                clinical_scores_used=clinical_scores_used,
+            )))
+
+        # Sort strictly by the original confidence to preserve diagnostic ranking behavior, with deterministic tie-breaking on disease_id
+        candidates.sort(key=lambda item: (-item[0], item[1].disease_id))
+
+        # Enforce monotonicity and resolve ranks/percents
+        final_candidates: List[CandidateDiagnosis] = []
+        for i, (orig_conf, c) in enumerate(candidates):
+            c.rank = i + 1
+            calib_conf = c.confidence
+            if i > 0:
+                if calib_conf > final_candidates[i - 1].confidence:
+                    calib_conf = final_candidates[i - 1].confidence
+            
+            c.confidence = round(calib_conf, 4)
+            c.confidence_percent = round(calib_conf * 100.0, 2)
+            final_candidates.append(c)
+
+        # Generate deterministic explanations (why_suggested, why_competing_lower)
+        for i, c in enumerate(final_candidates):
+            sym_summary = f"{len(c.supporting_symptoms)} matching symptoms ({', '.join(c.supporting_symptoms[:3])})" if c.supporting_symptoms else "no supporting symptoms"
+            rf_summary = f", risk factors ({', '.join(c.risk_factors)})" if c.risk_factors else ""
+            c.why_suggested = f"Suggested because of {sym_summary}{rf_summary}. Calibrated confidence is {c.confidence_percent}%."
+
+            if i == 0:
+                c.why_competing_lower = "This is the primary candidate with the highest overall symptom alignment and risk profile."
+            else:
+                better_cand = final_candidates[i - 1]
+                c.why_competing_lower = (
+                    f"Scored lower than competing diagnosis '{better_cand.name}' (confidence {better_cand.confidence_percent}%) "
+                    f"due to lower symptom weights or fewer matching risk factor modifiers."
                 )
-            )
 
-        # Re-rank by final confidence
-        candidates.sort(key=lambda c: c.confidence, reverse=True)
-        for i, c in enumerate(candidates, start=1):
-            c.rank = i
-
-        return candidates
+        return final_candidates

@@ -11,21 +11,21 @@ class TestClinicalExtraction(unittest.TestCase):
         self.pipeline = ClinicalProcessingPipeline()
 
     def test_symptom_with_severity(self):
-        # 1. "I have severe headache" -> Expected: symptom=headache, severity=severe
+        # 1. "I have severe headache" -> Expected: symptom=symptom_headache, severity=severe
         text = "I have severe headache"
         res = self.extractor.extract(text)
         self.assertEqual(len(res["symptoms"]), 1)
-        self.assertEqual(res["symptoms"][0].name, "headache")
+        self.assertEqual(res["symptoms"][0].name, "symptom_headache")
         self.assertEqual(res["symptoms"][0].severity, "severe")
         self.assertTrue(res["symptoms"][0].present)
         self.assertIsNone(res["symptoms"][0].duration)
 
     def test_symptom_with_duration(self):
-        # 2. "I have fever for two days" -> Expected: symptom=fever, duration=two days
+        # 2. "I have fever for two days" -> Expected: symptom=symptom_fever, duration=two days
         text = "I have fever for two days"
         res = self.extractor.extract(text)
         self.assertEqual(len(res["symptoms"]), 1)
-        self.assertEqual(res["symptoms"][0].name, "fever")
+        self.assertEqual(res["symptoms"][0].name, "symptom_fever")
         self.assertEqual(res["symptoms"][0].duration, "two days")  # leading 'for' is stripped
         self.assertTrue(res["symptoms"][0].present)
         self.assertIsNone(res["symptoms"][0].severity)
@@ -63,7 +63,7 @@ class TestClinicalExtraction(unittest.TestCase):
         self.assertEqual(res["diagnoses"][0].name, "diabetes")
         
         self.assertEqual(len(res["symptoms"]), 1)
-        self.assertEqual(res["symptoms"][0].name, "cough")
+        self.assertEqual(res["symptoms"][0].name, "symptom_cough")
         self.assertEqual(res["symptoms"][0].severity, "mild")
         
         self.assertEqual(len(res["medications"]), 1)
@@ -75,7 +75,7 @@ class TestClinicalExtraction(unittest.TestCase):
         res = self.extractor.extract(text)
         
         self.assertEqual(len(res["symptoms"]), 1)
-        self.assertEqual(res["symptoms"][0].name, "fever")
+        self.assertEqual(res["symptoms"][0].name, "symptom_fever")
         self.assertEqual(res["symptoms"][0].severity, "mild")
         
         self.assertEqual(len(res["medications"]), 1)
@@ -87,7 +87,7 @@ class TestClinicalExtraction(unittest.TestCase):
         
         # Verify direct normalization
         normalized = self.normalizer.normalize(text)
-        self.assertEqual(normalized, "I have a headache due to hypertension")
+        self.assertEqual(normalized, "I have a symptom_headache due to hypertension")
         
         # Verify complete pipeline
         data = {
@@ -104,7 +104,7 @@ class TestClinicalExtraction(unittest.TestCase):
         self.assertEqual(res.timestamp, 123.45)
         
         self.assertEqual(len(res.symptoms), 1)
-        self.assertEqual(res.symptoms[0].name, "headache")
+        self.assertEqual(res.symptoms[0].name, "symptom_headache")
         self.assertTrue(res.symptoms[0].present)
         
         self.assertEqual(len(res.diagnoses), 1)
@@ -134,10 +134,10 @@ class TestClinicalExtraction(unittest.TestCase):
     def test_negation_detection(self):
         # UPGRADE: Verify pre- and post-negation patterns across entities
         negated_cases = [
-            ("I do not have a fever", "symptoms", "fever"),
-            ("No cough present today", "symptoms", "cough"),
-            ("Chest pain has been ruled out", "symptoms", "chest pain"),
-            ("The patient denies nausea", "symptoms", "nausea"),
+            ("I do not have a fever", "symptoms", "symptom_fever"),
+            ("No cough present today", "symptoms", "symptom_cough"),
+            ("Chest pain has been ruled out", "symptoms", "symptom_chest_pain"),
+            ("The patient denies nausea", "symptoms", "symptom_nausea"),
             ("We did not prescribe paracetamol", "medications", "paracetamol"),
             ("An MRI was ruled out", "procedures", "MRI")
         ]
@@ -163,10 +163,10 @@ class TestClinicalExtraction(unittest.TestCase):
         
         self.assertEqual(len(res_clause["symptoms"]), 2)
         # Fever should be negated
-        fever_ent = next(s for s in res_clause["symptoms"] if s.name == "fever")
+        fever_ent = next(s for s in res_clause["symptoms"] if s.name == "symptom_fever")
         self.assertFalse(fever_ent.present)
         # Cough should be present (negation blocked by clause boundary "but")
-        cough_ent = next(s for s in res_clause["symptoms"] if s.name == "cough")
+        cough_ent = next(s for s in res_clause["symptoms"] if s.name == "symptom_cough")
         self.assertTrue(cough_ent.present)
 
     def test_clause_based_proximity_association(self):
@@ -175,19 +175,19 @@ class TestClinicalExtraction(unittest.TestCase):
         res = self.extractor.extract(text)
         
         self.assertEqual(len(res["symptoms"]), 2)
-        cough_ent = next(s for s in res["symptoms"] if s.name == "cough")
+        cough_ent = next(s for s in res["symptoms"] if s.name == "symptom_cough")
         self.assertEqual(cough_ent.severity, "severe")
         
-        headache_ent = next(s for s in res["symptoms"] if s.name == "headache")
+        headache_ent = next(s for s in res["symptoms"] if s.name == "symptom_headache")
         self.assertEqual(headache_ent.severity, "mild")
 
     def test_rich_synonyms_normalization(self):
         # UPGRADE: Verify that pounding head, light-headed, throwing up, and difficulty breathing map correctly
         synonym_cases = [
-            ("My head has been pounding since yesterday", "headache", "yesterday"),
-            ("I feel light-headed today", "dizziness", "today"),
-            ("He was throwing up this morning", "nausea", None),
-            ("Patient reports difficulty breathing for two days", "shortness of breath", "two days")
+            ("My head has been pounding since yesterday", "symptom_headache", "yesterday"),
+            ("I feel light-headed today", "symptom_dizziness", "today"),
+            ("He was throwing up this morning", "symptom_nausea", None),
+            ("Patient reports difficulty breathing for two days", "symptom_shortness_of_breath", "two days")
         ]
         
         for text, canonical_symptom, expected_duration in synonym_cases:
@@ -237,10 +237,10 @@ class TestClinicalExtraction(unittest.TestCase):
         self.assertEqual(res_pat.speaker_id, "patient")
         self.assertEqual(len(res_pat.symptoms), 2)
         
-        chest_pain_pat = next(s for s in res_pat.symptoms if s.name == "chest pain")
+        chest_pain_pat = next(s for s in res_pat.symptoms if s.name == "symptom_chest_pain")
         self.assertFalse(chest_pain_pat.present)  # Patient negated it
         
-        cough_pat = next(s for s in res_pat.symptoms if s.name == "cough")
+        cough_pat = next(s for s in res_pat.symptoms if s.name == "symptom_cough")
         self.assertTrue(cough_pat.present)
         self.assertEqual(cough_pat.severity, "mild")
 
@@ -250,14 +250,14 @@ class TestClinicalExtraction(unittest.TestCase):
         text_long = "The patient absolutely does not currently have fever."
         res_long = self.extractor.extract(text_long)
         self.assertEqual(len(res_long["symptoms"]), 1)
-        self.assertEqual(res_long["symptoms"][0].name, "fever")
+        self.assertEqual(res_long["symptoms"][0].name, "symptom_fever")
         self.assertFalse(res_long["symptoms"][0].present)  # Successfully caught by full-prefix scan
 
         # B: Double negation ("was not ruled out" -> present = True)
         text_double = "Fever was not ruled out today."
         res_double = self.extractor.extract(text_double)
         self.assertEqual(len(res_double["symptoms"]), 1)
-        self.assertEqual(res_double["symptoms"][0].name, "fever")
+        self.assertEqual(res_double["symptoms"][0].name, "symptom_fever")
         self.assertTrue(res_double["symptoms"][0].present)  # Double negation canceled negation!
 
     def test_rich_duration_detection(self):
@@ -287,6 +287,7 @@ class TestClinicalExtraction(unittest.TestCase):
             with self.subTest(text=text):
                 res = self.extractor.extract(text)
                 self.assertEqual(len(res["symptoms"]), 1)
+                self.assertEqual(res["symptoms"][0].name, next(iter(res["symptoms"])).name)
                 self.assertEqual(res["symptoms"][0].severity, expected_severity)
 
     def test_entity_deduplication_and_consolidation(self):
@@ -296,7 +297,7 @@ class TestClinicalExtraction(unittest.TestCase):
         
         # Should merge into a single cough entity with combined severity, duration, and positive present status
         self.assertEqual(len(res["symptoms"]), 1)
-        self.assertEqual(res["symptoms"][0].name, "cough")
+        self.assertEqual(res["symptoms"][0].name, "symptom_cough")
         self.assertEqual(res["symptoms"][0].severity, "very severe")
         self.assertEqual(res["symptoms"][0].duration, "two weeks")
         self.assertTrue(res["symptoms"][0].present)
@@ -371,10 +372,10 @@ class TestClinicalExtraction(unittest.TestCase):
             "timestamp": 0.0
         })
         self.assertEqual(len(res4.symptoms), 2)
-        nausea = next(s for s in res4.symptoms if s.name == "nausea")
+        nausea = next(s for s in res4.symptoms if s.name == "symptom_nausea")
         self.assertTrue(nausea.present)
         
-        vomiting = next(s for s in res4.symptoms if s.name == "vomiting")
+        vomiting = next(s for s in res4.symptoms if s.name == "symptom_vomiting")
         self.assertFalse(vomiting.present)
 
     def test_user_reported_next_scenarios(self):
@@ -382,28 +383,28 @@ class TestClinicalExtraction(unittest.TestCase):
         text_neg1 = "I have no fever."
         res_neg1 = self.extractor.extract(text_neg1)
         self.assertEqual(len(res_neg1["symptoms"]), 1)
-        self.assertEqual(res_neg1["symptoms"][0].name, "fever")
+        self.assertEqual(res_neg1["symptoms"][0].name, "symptom_fever")
         self.assertFalse(res_neg1["symptoms"][0].present)
 
         text_neg2 = "Never had chest pain."
         res_neg2 = self.extractor.extract(text_neg2)
         self.assertEqual(len(res_neg2["symptoms"]), 1)
-        self.assertEqual(res_neg2["symptoms"][0].name, "chest pain")
+        self.assertEqual(res_neg2["symptoms"][0].name, "symptom_chest_pain")
         self.assertFalse(res_neg2["symptoms"][0].present)
 
         text_neg3 = "I deny shortness of breath."
         res_neg3 = self.extractor.extract(text_neg3)
         self.assertEqual(len(res_neg3["symptoms"]), 1)
-        self.assertEqual(res_neg3["symptoms"][0].name, "shortness of breath")
+        self.assertEqual(res_neg3["symptoms"][0].name, "symptom_shortness_of_breath")
         self.assertFalse(res_neg3["symptoms"][0].present)
 
         text_neg4 = "No nausea or vomiting."
         normalized = self.normalizer.normalize(text_neg4)
         res_neg4 = self.extractor.extract(normalized)
         self.assertEqual(len(res_neg4["symptoms"]), 2)
-        nausea = next(s for s in res_neg4["symptoms"] if s.name == "nausea")
+        nausea = next(s for s in res_neg4["symptoms"] if s.name == "symptom_nausea")
         self.assertFalse(nausea.present)
-        vomiting = next(s for s in res_neg4["symptoms"] if s.name == "vomiting")
+        vomiting = next(s for s in res_neg4["symptoms"] if s.name == "symptom_vomiting")
         self.assertFalse(vomiting.present)
 
         # 2. Multiple symptoms in one sentence
@@ -417,9 +418,9 @@ class TestClinicalExtraction(unittest.TestCase):
         text_mixed = "I have headache but no fever."
         res_mixed = self.extractor.extract(text_mixed)
         self.assertEqual(len(res_mixed["symptoms"]), 2)
-        headache = next(s for s in res_mixed["symptoms"] if s.name == "headache")
+        headache = next(s for s in res_mixed["symptoms"] if s.name == "symptom_headache")
         self.assertTrue(headache.present)
-        fever = next(s for s in res_mixed["symptoms"] if s.name == "fever")
+        fever = next(s for s in res_mixed["symptoms"] if s.name == "symptom_fever")
         self.assertFalse(fever.present)
 
         # 4. Duration attachment with plurals
@@ -428,11 +429,11 @@ class TestClinicalExtraction(unittest.TestCase):
         res_duration = self.extractor.extract(normalized_dur)
         self.assertEqual(len(res_duration["symptoms"]), 2)
         
-        headache_ent = next(s for s in res_duration["symptoms"] if s.name == "headache")
+        headache_ent = next(s for s in res_duration["symptoms"] if s.name == "symptom_headache")
         self.assertEqual(headache_ent.duration, "three weeks")
         self.assertTrue(headache_ent.present)
         
-        fever_ent = next(s for s in res_duration["symptoms"] if s.name == "fever")
+        fever_ent = next(s for s in res_duration["symptoms"] if s.name == "symptom_fever")
         self.assertEqual(fever_ent.duration, "yesterday")
         self.assertTrue(fever_ent.present)
 

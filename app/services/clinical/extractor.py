@@ -47,7 +47,7 @@ class ClinicalEntityExtractor:
                 
         return False
 
-    def extract(self, text: str, speaker_id: Optional[str] = None, session_id: Optional[str] = None, timestamp: float = 0.0) -> Dict[str, List[Any]]:
+    def extract(self, text: str, speaker_id: Optional[str] = None, session_id: Optional[str] = None, timestamp: float = 0.0, utterance_id: Optional[str] = None) -> Dict[str, List[Any]]:
         results = {
             "symptoms": [],
             "medications": [],
@@ -69,8 +69,8 @@ class ClinicalEntityExtractor:
         section = self.section_detector.detect_section(session, text, speaker_id or "patient")
 
         # 1. Run modular sub-extractors
-        results["symptoms"] = self.symptom_extractor.extract_symptoms(text, speaker_id, session, section)
-        results["medications"] = self.medication_extractor.extract_medications(text, speaker_id)
+        results["symptoms"] = self.symptom_extractor.extract_symptoms(text, speaker_id, session, section, utterance_id)
+        results["medications"] = self.medication_extractor.extract_medications(text, speaker_id, utterance_id)
         results["diagnoses"] = self.diagnosis_extractor.extract_diagnoses(text, speaker_id)
         
         history_results = self.history_extractor.extract_history(text, speaker_id)
@@ -119,12 +119,21 @@ class ClinicalEntityExtractor:
             final_severity = next((s.severity for s in group if s.severity), None)
             final_duration = next((s.duration for s in group if s.duration), None)
             max_confidence = max(s.confidence for s in group)
+            first = group[0]
             consolidated["symptoms"].append(SymptomEntity(
-                name=group[0].name,
+                name=first.name,
+                display_name=first.display_name,
                 severity=final_severity,
                 duration=final_duration,
                 present=any_present,
-                confidence=max_confidence
+                confidence=max_confidence,
+                onset=next((s.onset for s in group if s.onset), None),
+                progression=next((s.progression for s in group if s.progression), None),
+                frequency=next((s.frequency for s in group if s.frequency), None),
+                character=next((s.character for s in group if s.character), None),
+                source_text=next((s.source_text for s in group if s.source_text), None),
+                utterance_id=next((s.utterance_id for s in group if s.utterance_id), None),
+                speaker=next((s.speaker for s in group if s.speaker), None)
             ))
 
         # Medications
@@ -141,9 +150,13 @@ class ClinicalEntityExtractor:
             route = next((m.route for m in group if m.route), None)
             instructions = next((m.instructions for m in group if m.instructions), None)
             prn = any(m.prn for m in group)
+            first = group[0]
             
             consolidated["medications"].append(MedicationEntity(
-                name=group[0].name,
+                name=first.name,
+                display_name=first.display_name,
+                canonical_name=first.canonical_name,
+                drug_id=first.drug_id,
                 present=any_present,
                 confidence=max_confidence,
                 dosage=dosage,
@@ -151,7 +164,10 @@ class ClinicalEntityExtractor:
                 duration=duration,
                 route=route,
                 instructions=instructions,
-                prn=prn
+                prn=prn,
+                source_text=next((m.source_text for m in group if m.source_text), None),
+                utterance_id=next((m.utterance_id for m in group if m.utterance_id), None),
+                speaker=next((m.speaker for m in group if m.speaker), None)
             ))
 
         # Diagnoses

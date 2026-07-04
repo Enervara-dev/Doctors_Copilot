@@ -1,26 +1,62 @@
 {
   "version": "1.0",
-  "updated": "2026-06-30",
+  "updated": "2026-07-04",
   "entries": {
-    "headache": [
+    "symptom_headache": [
       "headache", "head ache", "headaches", "head pounding", "pounding head", 
       "head pain", "pain in head", "pounding in head", "head has been pounding", 
       "head is pounding", "head was pounding"
     ],
-    "fever": ["fever", "fevers", "high temperature", "running a temperature", "chills", "feeling hot"],
-    "cough": ["cough", "coughs", "coughing", "coughing up", "coughing fits"],
-    "dizziness": ["dizziness", "dizzy", "lightheaded", "light-headed", "room spinning", "spinning sensation"],
-    "nausea": [
+    "symptom_fever": [
+      "fever", "fevers", "high temperature", "running a temperature", "chills", "feeling hot", "feverish"
+    ],
+    "symptom_cough": [
+      "cough", "coughs", "coughing", "coughing up", "coughing fits"
+    ],
+    "symptom_dizziness": [
+      "dizziness", "dizzy", "lightheaded", "light-headed", "room spinning", "spinning sensation"
+    ],
+    "symptom_nausea": [
       "nausea", "nauseous", "sick to my stomach", "feeling sick", "nauseated", 
       "throwing up", "threw up", "throwing-up"
     ],
-    "vomiting": ["vomiting", "vomit", "vomited", "heaving"],
-    "fatigue": ["fatigue", "fatigued", "tiredness", "exhaustion", "exhausted", "feeling weak", "weakness", "lethargic", "lethargy"],
-    "chest pain": [
+    "symptom_vomiting": [
+      "vomiting", "vomit", "vomited", "heaving"
+    ],
+    "symptom_fatigue": [
+      "fatigue", "fatigued", "tiredness", "exhaustion", "exhausted", "feeling weak", "weakness", "lethargic", "lethargy"
+    ],
+    "symptom_chest_pain": [
       "chest pain", "chest pains", "pain in chest", "pain over chest", "tightness in chest", 
       "pressure in chest", "chest discomfort", "heaviness in chest", "pain in my chest", 
       "pain in the chest"
     ],
-    "shortness of breath": ["shortness of breath", "short of breath", "difficulty breathing", "breathless", "cannot breathe", "trouble breathing", "hard to breathe"]
+    "symptom_shortness_of_breath": [
+      "shortness of breath", "short of breath", "difficulty breathing", "breathless", "cannot breathe", "trouble breathing", "hard to breathe"
+    ],
+    "symptom_throat_dryness": [
+      "dry throat", "throat feels dry", "throat is dry", "dryness in throat", "throat dryness", "dry throat"
+    ],
+    "symptom_sore_throat": [
+      "sore throat", "throat is sore", "throat sore", "soreness in throat", "itchy throat", "scratchy throat"
+    ],
+    "symptom_throat_pain": [
+      "throat pain", "pain in throat", "throat hurts", "pain in my throat"
+    ],
+    "symptom_nasal_congestion": [
+      "nasal congestion", "stuffy nose", "congested nose", "blocked nose", "congestion"
+    ],
+    "symptom_rhinorrhea": [
+      "rhinorrhea", "runny nose", "running nose", "nose running"
+    ],
+    "symptom_chills": [
+      "chills", "feeling cold", "shivering", "rigors"
+    ],
+    "symptom_body_aches": [
+      "body aches", "body ache", "aches all over", "muscle pain", "muscle ache", "muscle aches", "myalgia", "body hurts", "body is aching"
+    ],
+    "symptom_diarrhea": [
+      "diarrhea", "loose stools", "watery stools", "runny tummy"
+    ]
   }
 }

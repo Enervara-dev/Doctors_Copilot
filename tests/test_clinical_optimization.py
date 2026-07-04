@@ -37,8 +37,8 @@ class TestClinicalOptimization(unittest.TestCase):
     # ==========================================
     def test_dict_loader_symptoms(self):
         symptom_dict = dictionary_manager.get_symptoms()
-        self.assertIn("headache", symptom_dict)
-        self.assertIn("fever", symptom_dict)
+        self.assertIn("symptom_headache", symptom_dict)
+        self.assertIn("symptom_fever", symptom_dict)
 
     def test_dict_loader_diseases(self):
         diseases_dict = dictionary_manager.get_diseases()
@@ -295,7 +295,7 @@ class TestClinicalOptimization(unittest.TestCase):
     def test_symptom_extractor_basic(self):
         res = self.symptom_extractor.extract_symptoms("I have severe cough", "patient")
         self.assertEqual(len(res), 1)
-        self.assertEqual(res[0].name, "cough")
+        self.assertEqual(res[0].name, "symptom_cough")
         self.assertEqual(res[0].severity, "severe")
 
     def test_medication_extractor_full(self):
@@ -339,9 +339,9 @@ class TestClinicalOptimization(unittest.TestCase):
 
     def test_vitals_extractor_all(self):
         vitals = self.vitals_extractor.extract_vitals("Pulse was 72 bpm, BP is 120/80 and temperature is 98.6 F")
-        self.assertEqual(vitals["pulse"], "72")
-        self.assertEqual(vitals["bp"], "120/80")
-        self.assertEqual(vitals["temperature"], "98.6")
+        self.assertEqual(vitals["pulse"].value, "72")
+        self.assertEqual(vitals["bp"].value, "120/80")
+        self.assertEqual(vitals["temperature"].value, "98.6")
 
     def test_vitals_extractor_none(self):
         vitals = self.vitals_extractor.extract_vitals("Just a normal conversation without numbers.")

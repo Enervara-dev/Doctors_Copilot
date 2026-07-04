@@ -1,15 +1,26 @@
-from typing import List, Optional, Dict
+from typing import List, Optional, Dict, Any
 from pydantic import BaseModel, Field
 
 class SymptomEntity(BaseModel):
-    name: str
+    name: str                           # Canonical ID, e.g. "symptom_cough"
+    display_name: str                   # Human readable name, e.g. "Cough"
     severity: Optional[str] = None
     duration: Optional[str] = None
     present: bool = True
     confidence: float = 1.0
+    onset: Optional[str] = None         # e.g., "started yesterday"
+    progression: Optional[str] = None   # e.g., "worsening"
+    frequency: Optional[str] = None     # e.g., "intermittent"
+    character: Optional[str] = None     # e.g., "sudden onset"
+    source_text: Optional[str] = None   # Provenance: sentence string
+    utterance_id: Optional[str] = None  # Provenance: transcript event ID
+    speaker: Optional[str] = None       # "patient" or "doctor"
 
 class MedicationEntity(BaseModel):
-    name: str
+    name: str                           # generic name
+    display_name: Optional[str] = None   # brand/reported name, e.g. "Tylenol"
+    canonical_name: Optional[str] = None # generic name, e.g. "Paracetamol"
+    drug_id: Optional[str] = None        # canonical ID, e.g. "drug_paracetamol"
     present: bool = True
     confidence: float = 1.0
     dosage: Optional[str] = None
@@ -18,6 +29,9 @@ class MedicationEntity(BaseModel):
     route: Optional[str] = None
     instructions: Optional[str] = None
     prn: bool = False
+    source_text: Optional[str] = None   # Provenance
+    utterance_id: Optional[str] = None  # Provenance
+    speaker: Optional[str] = None       # "patient" or "doctor"
 
 class DiagnosisEntity(BaseModel):
     name: str
@@ -61,13 +75,32 @@ class PatientInfo(BaseModel):
     age: Optional[int] = None
     gender: Optional[str] = None
 
+class ExaminationFinding(BaseModel):
+    finding: str
+    body_system: Optional[str] = None
+    confidence: float = 1.0
+    source: str = "examination"
+    timestamp: Optional[float] = None
+    source_text: Optional[str] = None
+    utterance_id: Optional[str] = None
+
+class VitalObservation(BaseModel):
+    value: Optional[str] = None
+    unit: Optional[str] = None
+    qualitative: Optional[str] = None
+    source: str = "examination"
+    confidence: float = 1.0
+    timestamp: Optional[float] = None
+    source_text: Optional[str] = None
+    utterance_id: Optional[str] = None
+
 class VitalSigns(BaseModel):
-    bp: Optional[str] = None
-    pulse: Optional[str] = None
-    temperature: Optional[str] = None
-    spo2: Optional[str] = None
-    weight: Optional[str] = None
-    height: Optional[str] = None
+    bp: Optional[VitalObservation] = None
+    pulse: Optional[VitalObservation] = None
+    temperature: Optional[VitalObservation] = None
+    spo2: Optional[VitalObservation] = None
+    weight: Optional[VitalObservation] = None
+    height: Optional[VitalObservation] = None
 
 class TreatmentPlan(BaseModel):
     medicines: List[Dict[str, Optional[str]]] = Field(default_factory=list)
@@ -78,7 +111,7 @@ class ClinicalState(BaseModel):
     session_id: str
     patient_info: PatientInfo = Field(default_factory=PatientInfo)
     chief_complaint: List[str] = Field(default_factory=list)
-    symptoms: List[Dict[str, Optional[str]]] = Field(default_factory=list)
+    symptoms: List[Dict[str, Optional[Any]]] = Field(default_factory=list)
     duration: Optional[str] = None
     severity: Optional[str] = None
     medical_history: List[str] = Field(default_factory=list)
@@ -88,4 +121,7 @@ class ClinicalState(BaseModel):
     diagnosis_tentative: List[str] = Field(default_factory=list)
     treatment_plan: TreatmentPlan = Field(default_factory=TreatmentPlan)
     follow_up: List[str] = Field(default_factory=list)
+    examination: List[ExaminationFinding] = Field(default_factory=list)
+    audit_trail: List[Dict[str, Any]] = Field(default_factory=list)
     version: int = 1
+

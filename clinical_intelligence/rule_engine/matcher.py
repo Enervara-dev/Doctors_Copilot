@@ -36,6 +36,7 @@ class SymptomMatchResult:
     negated_cardinal: List[str] = field(default_factory=list)
     negation_penalty: float = 0.0
     disease_definition: Dict[str, Any] = field(default_factory=dict)
+    exclusion_triggered: bool = False
 
 
 def _build_alias_map(symptom_rules: List[Dict[str, Any]]) -> Dict[str, str]:
@@ -60,7 +61,7 @@ def _normalise(name: str, alias_map: Dict[str, str]) -> str:
     return alias_map.get(key, key)
 
 
-def _partial_match(name: str, alias_map: Dict[str, str]) -> Optional[str]:
+def _partial_match(name: str, alias_map: Dict[str, str], compiled_regexes: Dict[str, Any] = None) -> Optional[str]:
     """
     Attempt a substring / word-boundary partial match for symptom names that
     contain extra qualifiers (e.g. 'chest pain severe' → 'chest pain').
@@ -73,7 +74,10 @@ def _partial_match(name: str, alias_map: Dict[str, str]) -> Optional[str]:
     best: Optional[str] = None
     best_len = 0
     for alias, canonical in alias_map.items():
-        if re.search(r'\b' + re.escape(alias) + r'\b', key) and len(alias) > best_len:
+        pattern = compiled_regexes.get(alias) if compiled_regexes else None
+        if pattern is None:
+            pattern = re.compile(r'\b' + re.escape(alias) + r'\b')
+        if pattern.search(key) and len(alias) > best_len:
             best = canonical
             best_len = len(alias)
     return best
@@ -89,9 +93,15 @@ class SymptomMatcher:
         self,
         disease_rules: List[Dict[str, Any]],
         symptom_rules: List[Dict[str, Any]],
+        rule_set: Optional[Any] = None,
     ) -> None:
         self._disease_rules = disease_rules
-        self._alias_map = _build_alias_map(symptom_rules)
+        if rule_set is not None:
+            self._alias_map = rule_set.compiled_aliases
+            self._compiled_regexes = rule_set.compiled_regexes
+        else:
+            self._alias_map = _build_alias_map(symptom_rules)
+            self._compiled_regexes = {}
 
     # ──────────────────────────────────────────────
     # Public API
@@ -126,17 +136,26 @@ class SymptomMatcher:
         present_with_conf: Dict[str, float] = {}
         for sym in present_symptoms:
             raw_name = sym.get("name", "")
-            canonical = _partial_match(raw_name, self._alias_map) or _normalise(raw_name, self._alias_map)
+            canonical = _partial_match(raw_name, self._alias_map, self._compiled_regexes) or _normalise(raw_name, self._alias_map)
+            
+            # Support prefix-agnostic fallback
+            if canonical not in self._alias_map and raw_name.lower().startswith("symptom_"):
+                stripped = raw_name[8:]
+                canonical = _partial_match(stripped, self._alias_map, self._compiled_regexes) or _normalise(stripped, self._alias_map)
+                
             conf_str = sym.get("confidence", "High")
             conf = self._conf_str_to_float(conf_str)
             present_canonical.add(canonical)
             # Keep the highest confidence seen for a given symptom
             present_with_conf[canonical] = max(present_with_conf.get(canonical, 0.0), conf)
 
-        negated_canonical: Set[str] = {
-            _partial_match(n, self._alias_map) or _normalise(n, self._alias_map)
-            for n in negated_symptoms
-        }
+        negated_canonical: Set[str] = set()
+        for n in negated_symptoms:
+            canonical = _partial_match(n, self._alias_map, self._compiled_regexes) or _normalise(n, self._alias_map)
+            if canonical not in self._alias_map and n.lower().startswith("symptom_"):
+                stripped = n[8:]
+                canonical = _partial_match(stripped, self._alias_map, self._compiled_regexes) or _normalise(stripped, self._alias_map)
+            negated_canonical.add(canonical)
 
         results: List[SymptomMatchResult] = []
 
@@ -149,11 +168,11 @@ class SymptomMatcher:
                 tracer=tracer,
             )
             tracer.increment_evaluated()
-            if result.raw_score > 0 or result.negation_penalty > 0:
+            if result.raw_score > 0 or result.negation_penalty > 0 or result.exclusion_triggered:
                 tracer.increment_matched()
             results.append(result)
 
-        results.sort(key=lambda r: r.raw_score - r.negation_penalty, reverse=True)
+        results.sort(key=lambda r: (-(r.raw_score - r.negation_penalty), r.disease_id))
         return results
 
     # ──────────────────────────────────────────────
@@ -192,7 +211,7 @@ class SymptomMatcher:
         for sym_def in cardinal_syms:
             sym_name_raw: str = sym_def.get("name", "")
             weight: float = float(sym_def.get("weight", 0.0))
-            canonical = _partial_match(sym_name_raw, self._alias_map) or _normalise(sym_name_raw, self._alias_map)
+            canonical = _partial_match(sym_name_raw, self._alias_map, self._compiled_regexes) or _normalise(sym_name_raw, self._alias_map)
 
             if canonical in present:
                 conf = present_conf.get(canonical, 1.0)
@@ -223,7 +242,7 @@ class SymptomMatcher:
         for sym_def in supportive_syms:
             sym_name_raw = sym_def.get("name", "")
             weight = float(sym_def.get("weight", 0.0))
-            canonical = _partial_match(sym_name_raw, self._alias_map) or _normalise(sym_name_raw, self._alias_map)
+            canonical = _partial_match(sym_name_raw, self._alias_map, self._compiled_regexes) or _normalise(sym_name_raw, self._alias_map)
 
             if canonical in present:
                 conf = present_conf.get(canonical, 1.0)
@@ -238,6 +257,26 @@ class SymptomMatcher:
                     confidence_delta=contribution,
                 )
 
+        # ── Exclusionary symptoms ──
+        exclusion_triggered = False
+        triggered_exclusionary = []
+        exclusionary_list = disease.get("exclusionary_symptoms", [])
+        for ex_sym in exclusionary_list:
+            ex_canonical = _partial_match(ex_sym, self._alias_map, self._compiled_regexes) or _normalise(ex_sym, self._alias_map)
+            if ex_canonical in present:
+                exclusion_triggered = True
+                triggered_exclusionary.append(ex_sym)
+
+        if exclusion_triggered:
+            raw_score = 0.0
+            tracer.add_step(
+                component="Matcher",
+                description=f"Exclusionary symptom(s) {triggered_exclusionary} matched for {disease_name}",
+                input_facts=[f"exclusionary: {triggered_exclusionary}"],
+                output="raw_score set to 0.0 due to exclusion",
+                confidence_delta=-max_possible
+            )
+
         return SymptomMatchResult(
             disease_id=disease_id,
             disease_name=disease_name,
@@ -250,7 +289,9 @@ class SymptomMatcher:
             negated_cardinal=negated_cardinal,
             negation_penalty=total_negation_penalty,
             disease_definition=disease,
+            exclusion_triggered=exclusion_triggered,
         )
+
 
     @staticmethod
     def _conf_str_to_float(conf: Any) -> float:

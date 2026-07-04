@@ -1,0 +1,136 @@
+{
+  "session_id": "consultation-xyz-f3c142",
+  "timestamp": 1783148850.0723124,
+  "pyannote_segments": [
+    {
+      "start": 2.46096875,
+      "end": 3.64221875,
+      "label": "Speaker_0"
+    },
+    {
+      "start": 5.076593750000001,
+      "end": 5.6334687500000005,
+      "label": "Speaker_1"
+    },
+    {
+      "start": 5.81909375,
+      "end": 7.1353437500000005,
+      "label": "Speaker_1"
+    },
+    {
+      "start": 11.25284375,
+      "end": 12.61971875,
+      "label": "Speaker_0"
+    },
+    {
+      "start": 14.52659375,
+      "end": 16.230968750000002,
+      "label": "Speaker_1"
+    },
+    {
+      "start": 18.52596875,
+      "end": 19.75784375,
+      "label": "Speaker_0"
+    },
+    {
+      "start": 21.95159375,
+      "end": 23.16659375,
+      "label": "Speaker_1"
+    },
+    {
+      "start": 23.33534375,
+      "end": 25.37721875,
+      "label": "Speaker_1"
+    },
+    {
+      "start": 27.402218750000003,
+      "end": 30.22034375,
+      "label": "Speaker_0"
+    },
+    {
+      "start": 32.228468750000005,
+      "end": 35.35034375,
+      "label": "Speaker_1"
+    },
+    {
+      "start": 37.493468750000005,
+      "end": 40.868468750000005,
+      "label": "Speaker_0"
+    },
+    {
+      "start": 42.80909375,
+      "end": 45.01971875,
+      "label": "Speaker_2"
+    },
+    {
+      "start": 46.82534375,
+      "end": 47.399093750000006,
+      "label": "Speaker_0"
+    },
+    {
+      "start": 49.23846875,
+      "end": 54.23346875,
+      "label": "Speaker_1"
+    },
+    {
+      "start": 56.697218750000005,
+      "end": 58.43534375,
+      "label": "Speaker_1"
+    },
+    {
+      "start": 60.291593750000004,
+      "end": 61.35471875,
+      "label": "Speaker_0"
+    },
+    {
+      "start": 63.19409375,
+      "end": 66.07971875,
+      "label": "Speaker_1"
+    },
+    {
+      "start": 67.80096875000001,
+      "end": 69.62346875,
+      "label": "Speaker_0"
+    },
+    {
+      "start": 71.42909375,
+      "end": 73.08284375000001,
+      "label": "Speaker_1"
+    },
+    {
+      "start": 73.26846875000001,
+      "end": 74.73659375000001,
+      "label": "Speaker_1"
+    },
+    {
+      "start": 76.67721875000001,
+      "end": 79.88346875,
+      "label": "Speaker_0"
+    },
+    {
+      "start": 81.73971875000001,
+      "end": 84.86159375000001,
+      "label": "Speaker_1"
+    }
+  ],
+  "words": [],
+  "word_speaker_mapping": [],
+  "final_events": [
+    {
+      "event_id": "a053d442-ebd2-4e44-a605-4c3fea08fb9a",
+      "sequence_number": 25,
+      "speaker_id": "doctor",
+      "transcript": "I'll prescribe some medicine. How many times a day should I take the medicine?",
+      "start_time": 76.96666666666667,
+      "end_time": 82.10000000000001
+    },
+    {
+      "event_id": "4e49045c-684a-43d4-aeba-8f259ad7607f",
+      "sequence_number": 26,
+      "speaker_id": "patient",
+      "transcript": "You should take it three times a day, and always after meals.",
+      "start_time": 82.10000000000001,
+      "end_time": 86.16666666666667
+    }
+  ]
+}

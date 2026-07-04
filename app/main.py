@@ -103,3 +103,16 @@ async def get_clinical_state_provenance(session_id: str):
     """
     from app.services.clinical import clinical_state_engine
     return clinical_state_engine.get_provenance(session_id)
+
+@app.get("/v1/clinical-reasoning/{session_id}", status_code=status.HTTP_200_OK)
+async def get_clinical_reasoning(session_id: str):
+    """
+    Retrieves the clinical reasoning results (candidate diagnoses, red flags,
+    interactions, and recommendations) for a session.
+    """
+    from clinical_intelligence.integration import get_reasoning_result
+    result = get_reasoning_result(session_id)
+    if not result:
+        return {"message": "No reasoning results available yet."}
+    return result.model_dump()
+

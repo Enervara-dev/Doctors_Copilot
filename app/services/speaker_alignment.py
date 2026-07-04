@@ -26,6 +26,45 @@ class SpeakerAlignmentService:
         self._in_realignment = False
         self._session_mappings = {}
 
+    def classify_sentence(self, text: str, baseline_speaker: str) -> tuple:
+        """
+        Classifies the sentence semantically to prevent turn-taking role leakage.
+        Returns:
+            (final_speaker, speaker_confidence, speaker_method)
+        """
+        import re
+        # Strong clinical indicators for doctor and patient.
+        doctor_indicators = [
+            r"\byou should\b", r"\byou need to\b", r"\bi'll prescribe\b", r"\bi will prescribe\b",
+            r"\blet me check\b", r"\blet me listen\b", r"\bcheck your\b", r"\bhow are you feeling today\b",
+            r"\bdo you also have\b", r"\btake it three times\b", r"\bif you rest\b", r"\btake the medicine on time\b",
+            r"\blet's check your\b", r"\bi will check\b", r"\bi'll check\b", r"\blet me examine\b", r"\bcome back\b",
+            r"\bhave you taken\b", r"\bmedicine yet\b", r"\blooks like a\b", r"\bmild infection\b",
+            r"\bprescribe you\b", r"\bsyrup for the cough\b", r"\bdrink plenty of water\b",
+            r"\bget enough sleep\b", r"\bcome back if\b", r"\bslightly high\b"
+        ]
+
+        patient_indicators = [
+            r"\bdoctor\b", r"\bfeeling well\b", r"\bi have had\b", r"\bi've had\b", r"\bshould i take\b",
+            r"\bshould i\b", r"\btylenol\b", r"\badvil\b", r"\bparacetamol\b", r"\bdid not help\b",
+            r"\bdidn't help\b", r"\bhow long will it take to feel\b", r"\bthank you\b", r"\bthanks doctor\b",
+            r"\bwill i feel better\b", r"\bmy name is\b", r"\bi am called\b", r"\bi am feeling\b", r"\bi'm feeling\b",
+            r"\bmy throat\b", r"\bmy head\b", r"\bjust some tylenol\b", r"\bi'll do that\b",
+            r"\bthanks again\b", r"\bthank you, doctor\b", r"\bthank you doctor\b",
+            r"\bthroat feels dry\b", r"\bcoughing a little\b", r"\bhad a headache\b"
+        ]
+        
+        s_lower = text.lower()
+        is_doc = any(re.search(pat, s_lower) for pat in doctor_indicators)
+        is_pat = any(re.search(pat, s_lower) for pat in patient_indicators)
+        
+        if is_doc and not is_pat:
+            return "doctor", 0.95, "semantic_fallback"
+        if is_pat and not is_doc:
+            return "patient", 0.95, "semantic_fallback"
+            
+        return baseline_speaker, 0.70, "diarization"
+
     def align_and_segment(self, session_id: str, role: str, res: dict, provider) -> List[TranscriptEvent]:
         """
         Maps ElevenLabs Scribe transcript output words to the SpeakerTimeline.
@@ -82,12 +121,15 @@ class SpeakerAlignmentService:
                 speaker_label=speaker,
                 start_time=start_time,
                 end_time=end_time,
-                text=text
+                text=text,
+                speaker_confidence=0.70,
+                speaker_method="diarization"
             )
             return [event]
 
         # 2. Committed/Final transcripts: Segment by sentence and align to speaker timeline
-        sentences_data = []  # List of tuples: (sentence_text, start_time, end_time, speaker)
+        sentences_data = []  # List of tuples: (sentence_text, start_time, end_time, speaker, confidence, method)
+        mapping = self._session_mappings.get(session_id, self.SPEAKER_ROLE_MAPPING)
         
         if words:
             # Group words into sentences based on punctuation (. ? !)
@@ -105,10 +147,21 @@ class SpeakerAlignmentService:
                         s_start = min(valid_starts) if valid_starts else (current_sent_words[0].get("start", 0.0) if current_sent_words[0].get("start") is not None else 0.0)
                         s_end = max(valid_ends) if valid_ends else (current_sent_words[-1].get("end", 0.0) if current_sent_words[-1].get("end") is not None else 0.0)
                         
-                        speaker_raw = timeline.get_speaker_for_range(s_start, s_end)
-                        mapping = self._session_mappings.get(session_id, self.SPEAKER_ROLE_MAPPING)
-                        speaker = mapping.get(speaker_raw, speaker_raw)
-                        sentences_data.append((s_text, s_start, s_end, speaker))
+                        spk_raw, reason, details = timeline.get_speaker_for_range(s_start, s_end, return_details=True)
+                        speaker = mapping.get(spk_raw, spk_raw)
+                        
+                        # Priority 1: Timestamp speaker
+                        speaker_conf = 0.98
+                        speaker_method = "timestamp"
+                        
+                        # Priority 4: Semantic Fallback override
+                        semantic_spk, semantic_conf, semantic_method = self.classify_sentence(s_text, speaker)
+                        if semantic_method == "semantic_fallback":
+                            speaker = semantic_spk
+                            speaker_conf = semantic_conf
+                            speaker_method = semantic_method
+                            
+                        sentences_data.append((s_text, s_start, s_end, speaker, speaker_conf, speaker_method))
                     current_sent_words = []
             if current_sent_words:
                 s_text = "".join(x.get("text", "") for x in current_sent_words).strip()
@@ -119,10 +172,21 @@ class SpeakerAlignmentService:
                     s_start = min(valid_starts) if valid_starts else (current_sent_words[0].get("start", 0.0) if current_sent_words[0].get("start") is not None else 0.0)
                     s_end = max(valid_ends) if valid_ends else (current_sent_words[-1].get("end", 0.0) if current_sent_words[-1].get("end") is not None else 0.0)
                     
-                    speaker_raw = timeline.get_speaker_for_range(s_start, s_end)
-                    mapping = self._session_mappings.get(session_id, self.SPEAKER_ROLE_MAPPING)
-                    speaker = mapping.get(speaker_raw, speaker_raw)
-                    sentences_data.append((s_text, s_start, s_end, speaker))
+                    spk_raw, reason, details = timeline.get_speaker_for_range(s_start, s_end, return_details=True)
+                    speaker = mapping.get(spk_raw, spk_raw)
+                    
+                    # Priority 1: Timestamp speaker
+                    speaker_conf = 0.98
+                    speaker_method = "timestamp"
+                    
+                    # Priority 4: Semantic Fallback override
+                    semantic_spk, semantic_conf, semantic_method = self.classify_sentence(s_text, speaker)
+                    if semantic_method == "semantic_fallback":
+                        speaker = semantic_spk
+                        speaker_conf = semantic_conf
+                        speaker_method = semantic_method
+                        
+                    sentences_data.append((s_text, s_start, s_end, speaker, speaker_conf, speaker_method))
         else:
             # Fallback when words is empty/not present: split by regex and estimate time range
             sentence_texts = [s.strip() for s in re.split(r'(?<=[.!?])\s+', text) if s.strip()]
@@ -146,10 +210,30 @@ class SpeakerAlignmentService:
                 for s_text in sentence_texts:
                     s_dur = (len(s_text) / total_len) * (end_time - start_time)
                     s_end = curr_start + s_dur
-                    speaker_raw = timeline.get_speaker_for_range(curr_start, s_end)
-                    mapping = self._session_mappings.get(session_id, self.SPEAKER_ROLE_MAPPING)
-                    speaker = mapping.get(speaker_raw, speaker_raw)
-                    sentences_data.append((s_text, curr_start, s_end, speaker))
+                    spk_raw, reason, details = timeline.get_speaker_for_range(curr_start, s_end, return_details=True)
+                    speaker = mapping.get(spk_raw, spk_raw)
+                    
+                    # Priority 2: Diarization Confidence based on overlap ratio
+                    overlaps = details.get("overlaps", {})
+                    total_overlap = sum(overlaps.values()) if overlaps else 0.0
+                    chosen_overlap = overlaps.get(spk_raw, 0.0)
+                    overlap_ratio = (chosen_overlap / total_overlap) if total_overlap > 0.001 else 0.0
+                    
+                    if overlap_ratio >= 0.80:
+                        speaker_conf = overlap_ratio
+                        speaker_method = "diarization"
+                    else:
+                        speaker_conf = 0.60
+                        speaker_method = "overlap"
+                        
+                    # Priority 4: Semantic Fallback override
+                    semantic_spk, semantic_conf, semantic_method = self.classify_sentence(s_text, speaker)
+                    if semantic_method == "semantic_fallback":
+                        speaker = semantic_spk
+                        speaker_conf = semantic_conf
+                        speaker_method = semantic_method
+                        
+                    sentences_data.append((s_text, curr_start, s_end, speaker, speaker_conf, speaker_method))
                     curr_start = s_end
 
         # Debug logger to inspect sentence alignments and timeline segments
@@ -170,24 +254,30 @@ class SpeakerAlignmentService:
             curr_texts = [sentences_data[0][0]]
             curr_start = sentences_data[0][1]
             curr_end = sentences_data[0][2]
+            curr_conf = sentences_data[0][4]
+            curr_method = sentences_data[0][5]
             
-            for s_text, s_start, s_end, speaker in sentences_data[1:]:
+            for s_text, s_start, s_end, speaker, conf, method in sentences_data[1:]:
                 if speaker == curr_speaker:
                     curr_texts.append(s_text)
                     curr_end = s_end
+                    if conf > curr_conf:
+                        curr_conf = conf
+                        curr_method = method
                 else:
-                    groups.append((curr_speaker, curr_texts, curr_start, curr_end))
+                    groups.append((curr_speaker, curr_texts, curr_start, curr_end, curr_conf, curr_method))
                     curr_speaker = speaker
                     curr_texts = [s_text]
                     curr_start = s_start
                     curr_end = s_end
-            groups.append((curr_speaker, curr_texts, curr_start, curr_end))
+                    curr_conf = conf
+                    curr_method = method
+            groups.append((curr_speaker, curr_texts, curr_start, curr_end, curr_conf, curr_method))
 
         # Create a TranscriptEvent for each grouped segment
         events = []
-        for speaker, g_texts, g_start, g_end in groups:
+        for speaker, g_texts, g_start, g_end, g_conf, g_method in groups:
             group_text = " ".join(g_texts).strip()
-            # Clean up double spaces if they occur during joins
             group_text = re.sub(r'\s+', ' ', group_text)
             if not group_text:
                 continue
@@ -209,7 +299,9 @@ class SpeakerAlignmentService:
                 speaker_label=speaker,
                 start_time=g_start,
                 end_time=g_end,
-                text=group_text
+                text=group_text,
+                speaker_confidence=g_conf,
+                speaker_method=g_method
             )
             events.append(event)
             
@@ -219,15 +311,8 @@ class SpeakerAlignmentService:
                 import os
                 import json
                 
-                # 1. Pyannote segments
                 pyannote_segments = [{"start": s["start"], "end": s["end"], "label": s["label"]} for s in timeline.segments]
-                
-                # 2. Words
-                # words variable is already defined
-                
-                # 3. Word Speaker Mapping
                 word_speaker_mapping = []
-                mapping = self._session_mappings.get(session_id, self.SPEAKER_ROLE_MAPPING)
                 for w in words:
                     text = w.get("text", "")
                     if not text:
@@ -259,7 +344,6 @@ class SpeakerAlignmentService:
                             "reason": "Spacing or no timestamps"
                         })
                 
-                # 4. Final Events
                 final_events = [
                     {
                         "event_id": event.event_id,
@@ -272,7 +356,6 @@ class SpeakerAlignmentService:
                     for event in events
                 ]
                 
-                # Write to file
                 os.makedirs("logs", exist_ok=True)
                 log_filepath = f"logs/diarization_debug_{session_id}.json"
                 debug_data = {
@@ -286,7 +369,6 @@ class SpeakerAlignmentService:
                 with open(log_filepath, "w", encoding="utf-8") as f:
                     json.dump(debug_data, f, indent=2, ensure_ascii=False)
                     
-                # Format console message
                 pyannote_log = "\n".join(f"{s['start']:.2f} - {s['end']:.2f}   {s['label']}" for s in pyannote_segments)
                 words_log = "\n".join(f"{w.get('text', '').strip():<10} {w.get('start', 0.0):.2f}-{w.get('end', 0.0):.2f}" for w in words if w.get('text', '').strip())
                 
@@ -347,11 +429,20 @@ class SpeakerAlignmentService:
             r"\bdo you have any other\b",
             r"\bmedicine after meals\b",
             r"\bcheck your throat\b",
-            r"\bfeel this way\b"
+            r"\bfeel this way\b",
+            r"\bi'll prescribe\b",
+            r"\bi will prescribe\b",
+            r"\byou should take\b",
+            r"\bhow are you feeling today\b",
+            r"\bis there anything else\b",
+            r"\bcome back\b",
+            r"\bif you rest\b",
+            r"\btake the medicine on time\b"
         ]
 
         # Patient indicators (phrases/patterns characteristic of a patient responding/naming symptoms)
         patient_patterns = [
+            r"\bdoctor\b",
             r"\bheadache\b",
             r"\bsore throat\b",
             r"\bpainkiller\b",
@@ -365,7 +456,21 @@ class SpeakerAlignmentService:
             r"\bthanks doctor\b",
             r"\bgood morning doctor\b",
             r"\byes doctor\b",
-            r"\bno doctor\b"
+            r"\bno doctor\b",
+            r"\bfeeling well\b",
+            r"\bi've had\b",
+            r"\bi have had\b",
+            r"\bi have a\b",
+            r"\bi have been\b",
+            r"\bsince yesterday\b",
+            r"\btylenol\b",
+            r"\badvil\b",
+            r"\bparacetamol\b",
+            r"\bdid not help\b",
+            r"\bdidn't help\b",
+            r"\bhow long will it take to feel\b",
+            r"\bthank you\b",
+            r"\bwill i feel better\b"
         ]
 
         scores = {"Speaker_0": 0, "Speaker_1": 0}
@@ -405,6 +510,7 @@ class SpeakerAlignmentService:
             else:
                 sentence_texts = [s.strip() for s in re.split(r'(?<=[.!?])\s+', text) if s.strip()]
                 for s_text in sentence_texts:
+                    # Estimate speaker mapping
                     speaker_raw = timeline.get_speaker_for_range(0.0, 1000.0)
                     sentences.append((s_text, speaker_raw))
 

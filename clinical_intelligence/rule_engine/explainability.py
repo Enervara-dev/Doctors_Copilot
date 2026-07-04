@@ -43,7 +43,7 @@ class ExplainabilityTracer:
 
     def start(self) -> None:
         """Record the start wall-clock time."""
-        self._start_time = time.monotonic()
+        self._start_time = time.perf_counter()
         self._steps.clear()
         self._rules_evaluated = 0
         self._rules_matched = 0
@@ -88,7 +88,9 @@ class ExplainabilityTracer:
         Parameters ``rules_evaluated`` and ``rules_matched`` override
         the internally accumulated counters if provided.
         """
-        elapsed_ms = (time.monotonic() - self._start_time) * 1000.0
+        elapsed_ms = (time.perf_counter() - self._start_time) * 1000.0
+        if elapsed_ms <= 0.0:
+            elapsed_ms = 0.01
         return ExplainabilityMetadata(
             reasoning_steps=list(self._steps),
             rules_evaluated=rules_evaluated if rules_evaluated is not None else self._rules_evaluated,

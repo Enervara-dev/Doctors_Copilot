@@ -10,7 +10,7 @@ class MedicationExtractor:
         self.negation_detector = NegationDetector()
         self.drugs_dict = dictionary_manager.get_drugs()
 
-    def extract_medications(self, text: str, speaker_id: Optional[str] = None) -> List[MedicationEntity]:
+    def extract_medications(self, text: str, speaker_id: Optional[str] = None, utterance_id: Optional[str] = None) -> List[MedicationEntity]:
         results = []
         if not text or not text.strip():
             return results
@@ -96,6 +96,9 @@ class MedicationExtractor:
 
                 results.append(MedicationEntity(
                     name=drug["generic"],
+                    display_name=drug["matched_name"].capitalize(),
+                    canonical_name=drug["generic"].capitalize(),
+                    drug_id=f"drug_{drug['generic'].lower()}",
                     present=not is_neg,
                     confidence=confidence_score,
                     dosage=dosage,
@@ -103,7 +106,11 @@ class MedicationExtractor:
                     duration=duration,
                     route=route,
                     instructions=instructions,
-                    prn=prn
+                    prn=prn,
+                    source_text=sentence,
+                    utterance_id=utterance_id,
+                    speaker=speaker_id
                 ))
         
         return results
+

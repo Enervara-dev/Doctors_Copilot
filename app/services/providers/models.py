@@ -26,4 +26,7 @@ class TranscriptEvent(BaseModel):
     # Versioning and update tracking for database persistence and event consumers
     version: int = 1
     updated_at: Optional[float] = None
+    speaker_confidence: Optional[float] = None
+    speaker_method: Optional[str] = None
+
 

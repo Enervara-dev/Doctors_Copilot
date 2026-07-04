@@ -21,16 +21,18 @@ class ClinicalProcessingPipeline:
         speaker_id = data.get("speaker_id", "")
         transcript = data.get("transcript", "")
         timestamp = data.get("timestamp", 0.0)
+        utterance_id = data.get("utterance_id")
 
         # 1. Normalize
         normalized_transcript = self.normalizer.normalize(transcript)
 
-        # 2. Extract (passing speaker_id, session_id, and timestamp)
+        # 2. Extract (passing speaker_id, session_id, timestamp, and utterance_id)
         extraction_results = self.extractor.extract(
             normalized_transcript, 
             speaker_id=speaker_id,
             session_id=session_id,
-            timestamp=timestamp
+            timestamp=timestamp,
+            utterance_id=utterance_id
         )
 
         # 3. Construct and return result model

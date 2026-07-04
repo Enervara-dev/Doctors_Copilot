@@ -20,6 +20,13 @@
   name: Acute Coronary Syndrome
   category: cardiovascular
   icd10: I24.9
+  guideline:
+    organization: "AHA/ACC"
+    guideline: "AHA/ACC Chest Pain Guideline"
+    version: "2021"
+    recommendation: "Immediate 12-lead ECG and serial Cardiac Troponin measurement for patients presenting with chest pain suspicious for ACS"
+    strength: "Strong"
+    evidence_level: "A"
   cardinal_symptoms:
     - name: chest pain
       weight: 0.35
@@ -197,6 +204,13 @@
   name: Ischemic Stroke
   category: neurological
   icd10: I63.9
+  guideline:
+    organization: "AHA/ASA"
+    guideline: "AHA/ASA Early Management of Ischemic Stroke Guideline"
+    version: "2019"
+    recommendation: "Perform FAST assessment. Obtain non-contrast brain CT within 25 minutes. Assess eligibility for IV thrombolysis within 4.5 hours"
+    strength: "Strong"
+    evidence_level: "A"
   cardinal_symptoms:
     - name: sudden facial droop
       weight: 0.35
@@ -563,8 +577,16 @@
     stress: 0.08
     poor_posture: 0.05
     dehydration: 0.05
+  exclusionary_symptoms:
+    - symptom_fever
+    - fever
+    - neck stiffness
+    - neck_stiffness
+    - photophobia
+    - vomiting
   negation_penalty: 0.10
   min_diagnosis_threshold: 0.20
+
 
 - id: meningitis
   name: Meningitis
@@ -1023,3 +1045,103 @@
     caffeine_use: 0.04
   negation_penalty: 0.12
   min_diagnosis_threshold: 0.20
+
+- id: viral_uri
+  name: Viral Upper Respiratory Infection
+  category: respiratory
+  icd10: J06.9
+  cardinal_symptoms:
+    - name: symptom_rhinorrhea
+      weight: 0.35
+    - name: symptom_nasal_congestion
+      weight: 0.30
+    - name: symptom_cough
+      weight: 0.25
+  supportive_symptoms:
+    - name: symptom_sore_throat
+      weight: 0.15
+    - name: symptom_fever
+      weight: 0.10
+    - name: symptom_throat_dryness
+      weight: 0.05
+  negation_penalty: 0.15
+  min_diagnosis_threshold: 0.20
+
+- id: viral_pharyngitis
+  name: Viral Pharyngitis
+  category: respiratory
+  icd10: J02.9
+  cardinal_symptoms:
+    - name: symptom_sore_throat
+      weight: 0.40
+    - name: symptom_throat_pain
+      weight: 0.35
+  supportive_symptoms:
+    - name: symptom_throat_dryness
+      weight: 0.15
+    - name: symptom_cough
+      weight: 0.10
+    - name: symptom_rhinorrhea
+      weight: 0.10
+    - name: symptom_fever
+      weight: 0.08
+  negation_penalty: 0.20
+  min_diagnosis_threshold: 0.20
+
+- id: influenza_like_illness
+  name: Influenza-Like Illness
+  category: respiratory
+  icd10: J11.1
+  cardinal_symptoms:
+    - name: symptom_fever
+      weight: 0.35
+    - name: symptom_cough
+      weight: 0.30
+    - name: symptom_chills
+      weight: 0.25
+    - name: symptom_body_aches
+      weight: 0.25
+  supportive_symptoms:
+    - name: symptom_fatigue
+      weight: 0.15
+    - name: symptom_headache
+      weight: 0.12
+    - name: symptom_sore_throat
+      weight: 0.10
+  negation_penalty: 0.20
+  min_diagnosis_threshold: 0.20
+
+- id: acute_pharyngitis
+  name: Acute Pharyngitis
+  category: respiratory
+  icd10: J02.9
+  cardinal_symptoms:
+    - name: symptom_sore_throat
+      weight: 0.45
+    - name: symptom_throat_pain
+      weight: 0.35
+  supportive_symptoms:
+    - name: symptom_fever
+      weight: 0.10
+    - name: symptom_nasal_congestion
+      weight: 0.08
+  negation_penalty: 0.20
+  min_diagnosis_threshold: 0.20
+
+- id: acute_bronchitis
+  name: Acute Bronchitis
+  category: respiratory
+  icd10: J20.9
+  cardinal_symptoms:
+    - name: symptom_cough
+      weight: 0.45
+  supportive_symptoms:
+    - name: symptom_shortness_of_breath
+      weight: 0.15
+    - name: symptom_chest_pain
+      weight: 0.10
+    - name: symptom_fever
+      weight: 0.08
+  negation_penalty: 0.20
+  min_diagnosis_threshold: 0.20
+

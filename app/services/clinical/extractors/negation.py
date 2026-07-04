@@ -5,7 +5,9 @@ class NegationDetector:
     def __init__(self):
         negations = dictionary_manager.get_negations()
         self.pre_negation_triggers = set(negations.get("pre_negation", []))
+        self.pre_negation_triggers.update(["denies", "denied", "no", "not", "without", "negative", "absent", "never"])
         self.post_negation_triggers = set(negations.get("post_negation", []))
+
 
     def expand_contractions(self, text: str) -> str:
         """

@@ -1,0 +1,201 @@
+{
+  "session_id": "consultation-xyz-9036d5",
+  "timestamp": 1783149561.4804094,
+  "pyannote_segments": [
+    {
+      "start": 2.1234687500000002,
+      "end": 4.519718750000001,
+      "label": "Speaker_0"
+    },
+    {
+      "start": 5.177843750000001,
+      "end": 6.98346875,
+      "label": "Speaker_1"
+    },
+    {
+      "start": 7.371593750000001,
+      "end": 10.004093750000003,
+      "label": "Speaker_1"
+    },
+    {
+      "start": 10.476593750000003,
+      "end": 11.117843750000002,
+      "label": "Speaker_0"
+    },
+    {
+      "start": 11.742218750000003,
+      "end": 14.172218750000003,
+      "label": "Speaker_0"
+    },
+    {
+      "start": 14.695343750000003,
+      "end": 15.25221875,
+      "label": "Speaker_1"
+    },
+    {
+      "start": 15.640343750000003,
+      "end": 18.88034375,
+      "label": "Speaker_1"
+    },
+    {
+      "start": 20.500343750000003,
+      "end": 21.36096875,
+      "label": "Speaker_0"
+    },
+    {
+      "start": 21.69846875,
+      "end": 23.774093750000002,
+      "label": "Speaker_0"
+    },
+    {
+      "start": 24.769718750000003,
+      "end": 25.191593750000003,
+      "label": "Speaker_0"
+    },
+    {
+      "start": 25.309718750000002,
+      "end": 26.59221875,
+      "label": "Speaker_0"
+    },
+    {
+      "start": 27.351593750000003,
+      "end": 28.87034375,
+      "label": "Speaker_0"
+    },
+    {
+      "start": 29.37659375,
+      "end": 30.524093750000002,
+      "label": "Speaker_1"
+    },
+    {
+      "start": 31.03034375,
+      "end": 32.31284375,
+      "label": "Speaker_1"
+    },
+    {
+      "start": 33.274718750000005,
+      "end": 34.455968750000004,
+      "label": "Speaker_0"
+    },
+    {
+      "start": 35.080343750000004,
+      "end": 37.03784375,
+      "label": "Speaker_0"
+    },
+    {
+      "start": 37.74659375,
+      "end": 40.986593750000004,
+      "label": "Speaker_0"
+    },
+    {
+      "start": 41.729093750000004,
+      "end": 43.55159375,
+      "label": "Speaker_1"
+    },
+    {
+      "start": 43.55159375,
+      "end": 43.63596875,
+      "label": "Speaker_0"
+    },
+    {
+      "start": 44.19284375,
+      "end": 48.799718750000004,
+      "label": "Speaker_0"
+    },
+    {
+      "start": 44.41221875,
+      "end": 45.812843750000006,
+      "label": "Speaker_2"
+    },
+    {
+      "start": 48.32721875,
+      "end": 48.41159375,
+      "label": "Speaker_2"
+    },
+    {
+      "start": 49.49159375,
+      "end": 56.42721875,
+      "label": "Speaker_2"
+    },
+    {
+      "start": 53.220968750000004,
+      "end": 57.102218750000006,
+      "label": "Speaker_0"
+    },
+    {
+      "start": 57.45659375,
+      "end": 59.56596875,
+      "label": "Speaker_0"
+    },
+    {
+      "start": 59.56596875,
+      "end": 61.47284375,
+      "label": "Speaker_2"
+    },
+    {
+      "start": 62.97471875,
+      "end": 63.531593750000006,
+      "label": "Speaker_0"
+    }
+  ],
+  "words": [],
+  "word_speaker_mapping": [],
+  "final_events": [
+    {
+      "event_id": "f3135ae4-4e5e-491b-b38b-160291f8c293",
+      "sequence_number": 14,
+      "speaker_id": "doctor",
+      "transcript": "infection.",
+      "start_time": 39.93333333333334,
+      "end_time": 40.6
+    },
+    {
+      "event_id": "26c4f95c-f974-40f1-9bba-2507ec1aaf40",
+      "sequence_number": 15,
+      "speaker_id": "patient",
+      "transcript": "I'll prescribe you some antibiotics and syrup for the cough.",
+      "start_time": 40.6,
+      "end_time": 44.6
+    },
+    {
+      "event_id": "0bb90b4e-7cab-447c-beba-698aab50bedc",
+      "sequence_number": 16,
+      "speaker_id": "doctor",
+      "transcript": "How long will it take to feel better?",
+      "start_time": 44.6,
+      "end_time": 47.06666666666667
+    },
+    {
+      "event_id": "ca37b6df-a46f-4a9f-bd4a-3a8363c7f9de",
+      "sequence_number": 17,
+      "speaker_id": "attender",
+      "transcript": "Usually within three to four days if you rest and take the medicine on time. All right. I'll do that. Thank you, Doctor. Take care.",
+      "start_time": 47.06666666666667,
+      "end_time": 55.53333333333333
+    },
+    {
+      "event_id": "11ea3838-ec01-4608-b34c-3b84f1dbd606",
+      "sequence_number": 18,
+      "speaker_id": "doctor",
+      "transcript": "Drink plenty of water and get enough sleep.",
+      "start_time": 55.53333333333333,
+      "end_time": 58.4
+    },
+    {
+      "event_id": "3df1395f-9c0f-42ef-af3c-c7493757f0d7",
+      "sequence_number": 19,
+      "speaker_id": "attender",
+      "transcript": "Come back if the fever doesn't go down. I will. Thanks again.",
+      "start_time": 58.4,
+      "end_time": 62.333333333333336
+    },
+    {
+      "event_id": "779ce7a2-6eb1-4a2a-af21-b1744bef22b5",
+      "sequence_number": 20,
+      "speaker_id": "doctor",
+      "transcript": "Good morning.",
+      "start_time": 62.333333333333336,
+      "end_time": 63.2
+    }
+  ]
+}

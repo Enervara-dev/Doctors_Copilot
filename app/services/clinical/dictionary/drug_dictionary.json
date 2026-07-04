@@ -1,9 +1,11 @@
 {
   "version": "1.0",
-  "updated": "2026-06-30",
+  "updated": "2026-07-04",
   "entries": {
     "paracetamol": ["paracetamol", "acetaminophen", "tylenol", "panadol", "calpol"],
     "ibuprofen": ["ibuprofen", "advil", "motrin", "nurofen"],
+    "naproxen": ["naproxen", "aleve", "naprosyn"],
+    "diphenhydramine": ["diphenhydramine", "benadryl"],
     "amlodipine": ["amlodipine", "norvasc"],
     "metformin": ["metformin", "glucophage", "fortamet"],
     "lisinopril": ["lisinopril", "prinivil", "zestril"],

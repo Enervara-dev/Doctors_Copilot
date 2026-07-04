@@ -16,6 +16,7 @@ from typing import Any, Dict, List, Optional
 import yaml
 
 from clinical_intelligence.rule_engine.exceptions import RuleLoadError
+from clinical_intelligence.rule_engine.validator import validate_rules
 
 logger = logging.getLogger(__name__)
 
@@ -53,6 +54,35 @@ class RuleSet:
         self.risk_factors = risk_factors
         self.contraindications = contraindications
         self.drug_interactions = drug_interactions
+
+        # Pre-compile regular expressions and cache alias lookups and weights
+        self.compiled_aliases: Dict[str, str] = {}
+        self.compiled_regexes: Dict[str, Any] = {}
+        self.cached_weights: Dict[str, Dict[str, float]] = {}  # disease_id -> symptom -> weight
+        self._compile_caches()
+
+    def _compile_caches(self) -> None:
+        import re
+        # 1. Compile symptoms aliases
+        for entry in self.symptoms:
+            canonical = entry.get("canonical", "").lower().strip()
+            if not canonical:
+                continue
+            self.compiled_aliases[canonical] = canonical
+            self.compiled_regexes[canonical] = re.compile(r'\b' + re.escape(canonical) + r'\b')
+            for alias in entry.get("aliases", []):
+                alias_clean = alias.lower().strip()
+                self.compiled_aliases[alias_clean] = canonical
+                self.compiled_regexes[alias_clean] = re.compile(r'\b' + re.escape(alias_clean) + r'\b')
+        
+        # 2. Cache weights
+        for dis in self.diseases:
+            dis_id = dis.get("id", "")
+            self.cached_weights[dis_id] = {}
+            for s in dis.get("cardinal_symptoms", []) + dis.get("supportive_symptoms", []):
+                name = s.get("name", "").lower().strip()
+                weight = float(s.get("weight", 0.0))
+                self.cached_weights[dis_id][name] = weight
 
     def version_summary(self) -> Dict[str, Any]:
         """Return a lightweight dict describing rule counts."""
@@ -136,7 +166,7 @@ class RuleLoader:
             except OSError:
                 pass
 
-        self._rule_set = RuleSet(
+        rule_set = RuleSet(
             diseases=loaded.get("diseases", []),
             symptoms=loaded.get("symptoms", []),
             investigations=loaded.get("investigations", []),
@@ -145,7 +175,14 @@ class RuleLoader:
             contraindications=loaded.get("contraindications", []),
             drug_interactions=loaded.get("drug_interactions", []),
         )
+
+        # Fail fast: Validate every loaded rule.
+        validate_rules(rule_set)
+
+        self._rule_set = rule_set
         self._mtimes = new_mtimes
+        disease_names = [d.get("name", d.get("id")) for d in loaded.get("diseases", [])]
+        logger.info(f"RuleLoader: Loaded diseases: {', '.join(disease_names)}")
         logger.info(
             "RuleLoader: Rules loaded successfully.",
             extra=self._rule_set.version_summary(),
@@ -169,6 +206,22 @@ class RuleLoader:
             raise RuleLoadError(
                 str(path), f"expected a YAML list at top level, got {type(data).__name__}"
             )
+
+        # Expose rule_id, rule_version, created_date, and updated_date on every rule entry.
+        for entry in data:
+            if isinstance(entry, dict):
+                # Ensure rule_id is present
+                if "id" in entry:
+                    entry.setdefault("rule_id", entry["id"])
+                elif "canonical" in entry:
+                    entry.setdefault("rule_id", entry["canonical"].lower().replace(" ", "_"))
+                else:
+                    entry.setdefault("rule_id", "unknown_rule_id")
+                
+                entry.setdefault("rule_version", entry.get("version", "1.0.0"))
+                entry.setdefault("created_date", "2026-01-01")
+                entry.setdefault("updated_date", "2026-07-03")
+
         return data
 
 

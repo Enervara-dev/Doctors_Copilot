@@ -46,9 +46,9 @@ class TestClinicalStateEngine(unittest.TestCase):
             end_time=5.0
         )
         state = clinical_state_engine.update_state_from_event(event2)
-        self.assertEqual(state.chief_complaint, ["headache"])
+        self.assertEqual(state.chief_complaint, ["symptom_headache"])
         self.assertEqual(len(state.symptoms), 1)
-        self.assertEqual(state.symptoms[0]["name"], "headache")
+        self.assertEqual(state.symptoms[0]["name"], "symptom_headache")
 
         # Turn 3: Patient specifies duration of headache
         event3 = TranscriptEvent(
@@ -83,7 +83,7 @@ class TestClinicalStateEngine(unittest.TestCase):
             end_time=10.0
         )
         state = clinical_state_engine.update_state_from_event(event4)
-        self.assertNotIn("fever", [s["name"] for s in state.symptoms])
+        self.assertNotIn("symptom_fever", [s["name"] for s in state.symptoms])
 
         # Turn 5: Patient denies fever
         event5 = TranscriptEvent(
@@ -101,7 +101,7 @@ class TestClinicalStateEngine(unittest.TestCase):
         )
         state = clinical_state_engine.update_state_from_event(event5)
         # Fever is added but with status="Negated" and present="False"
-        fever_sym = next((s for s in state.symptoms if s["name"] == "fever"), None)
+        fever_sym = next((s for s in state.symptoms if s["name"] == "symptom_fever"), None)
         self.assertIsNotNone(fever_sym)
         self.assertEqual(fever_sym["status"], "Negated")
         self.assertEqual(fever_sym["present"], "False")
@@ -173,7 +173,7 @@ class TestClinicalStateEngine(unittest.TestCase):
             transcript="I have a fever.", is_final=True, is_partial=False, event_id="ev1", timestamp=100.0
         )
         state = clinical_state_engine.update_state_from_event(e1)
-        fever_sym = next((s for s in state.symptoms if s["name"] == "fever"), None)
+        fever_sym = next((s for s in state.symptoms if s["name"] == "symptom_fever"), None)
         self.assertEqual(fever_sym["status"], "Active")
         self.assertEqual(fever_sym["present"], "True")
 
@@ -183,7 +183,7 @@ class TestClinicalStateEngine(unittest.TestCase):
             transcript="The fever has gone now.", is_final=True, is_partial=False, event_id="ev2", timestamp=102.0
         )
         state = clinical_state_engine.update_state_from_event(e2)
-        fever_sym = next((s for s in state.symptoms if s["name"] == "fever"), None)
+        fever_sym = next((s for s in state.symptoms if s["name"] == "symptom_fever"), None)
         self.assertEqual(fever_sym["status"], "Resolved")
         self.assertEqual(fever_sym["present"], "False")
 
@@ -193,7 +193,7 @@ class TestClinicalStateEngine(unittest.TestCase):
             transcript="Actually my fever returned yesterday.", is_final=True, is_partial=False, event_id="ev3", timestamp=104.0
         )
         state = clinical_state_engine.update_state_from_event(e3)
-        fever_sym = next((s for s in state.symptoms if s["name"] == "fever"), None)
+        fever_sym = next((s for s in state.symptoms if s["name"] == "symptom_fever"), None)
         self.assertEqual(fever_sym["status"], "Active")
         self.assertEqual(fever_sym["present"], "True")
 
@@ -245,7 +245,7 @@ class TestClinicalStateEngine(unittest.TestCase):
             transcript="I am having head pain.", is_final=True, is_partial=False, event_id="ev1", timestamp=100.0
         )
         state = clinical_state_engine.update_state_from_event(e1)
-        self.assertEqual(state.symptoms[0]["name"], "headache")
+        self.assertEqual(state.symptoms[0]["name"], "symptom_headache")
 
         # Check chest pain normalization
         e2 = TranscriptEvent(
@@ -253,7 +253,7 @@ class TestClinicalStateEngine(unittest.TestCase):
             transcript="I have some pain in my chest.", is_final=True, is_partial=False, event_id="ev2", timestamp=102.0
         )
         state = clinical_state_engine.update_state_from_event(e2)
-        chest_sym = next(s for s in state.symptoms if s["name"] == "chest pain")
+        chest_sym = next(s for s in state.symptoms if s["name"] == "symptom_chest_pain")
         self.assertEqual(chest_sym["present"], "True")
 
         # Check honorific name extraction
@@ -275,8 +275,8 @@ class TestClinicalStateEngine(unittest.TestCase):
         )
         state = clinical_state_engine.update_state_from_event(e1)
         
-        headache = next(s for s in state.symptoms if s["name"] == "headache")
-        vomiting = next(s for s in state.symptoms if s["name"] == "vomiting")
+        headache = next(s for s in state.symptoms if s["name"] == "symptom_headache")
+        vomiting = next(s for s in state.symptoms if s["name"] == "symptom_vomiting")
         
         # headache should be severe, vomiting should have duration 3 days
         self.assertEqual(headache["severity"], "severe")
@@ -289,7 +289,7 @@ class TestClinicalStateEngine(unittest.TestCase):
         )
         state = clinical_state_engine.update_state_from_event(e2)
         # Moderate should update the last active symptom context (vomiting)
-        vomiting = next(s for s in state.symptoms if s["name"] == "vomiting")
+        vomiting = next(s for s in state.symptoms if s["name"] == "symptom_vomiting")
         self.assertEqual(vomiting["severity"], "moderate")
 
     def test_fact_provenance_and_versioning(self):

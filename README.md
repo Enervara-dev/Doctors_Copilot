@@ -1,225 +1,280 @@
-# Clinical Consultation Copilot - Step 1: Audio Streaming Layer
+# Clinical Consultation Copilot
 
-This repository contains the backend implementation of the **Audio Streaming Layer** (Step 1 of Milestone 1), built using **FastAPI** and designed for high-availability, low-latency clinical session recording. It accepts concurrent audio streams from multiple actors (Doctor, Patient, and Attender) during a consultation, validates the raw PCM data on-the-fly, buffers the incoming frames, and packages them into chunks ready for downstream ingestion (e.g. ElevenLabs Scribe V2 in Step 2).
-
----
-
-## 1. Protocol Evaluation: WebRTC vs. WebSockets
-
-For real-time streaming audio ingestion, the primary protocol choices are **WebRTC** and **WebSockets**. Below is an engineering evaluation of their roles in the system.
-
-### WebRTC (Real-Time Communication)
-WebRTC is designed for low-latency media transport directly over UDP (using RTP/SRTP). 
-
-*   **Why WebRTC is Chosen (for Client Ingestion):**
-    *   **Ultra-Low Latency:** Works over UDP, bypassing TCP retransmission delays (head-of-line blocking). Latency is usually sub-100ms.
-    *   **Native Jitter Buffering:** WebRTC client stacks (in browsers and mobile OSs) automatically handle packet reordering, echo cancellation, and network jitter adjustments.
-    *   **Bandwidth Adaptation:** Dynamically scales audio quality down under weak network conditions to avoid drops.
-*   **Disadvantages:**
-    *   **Server CPU Overhead:** Terminating WebRTC in standard Python servers (e.g., using `aiortc`) is single-threaded, CPU-bound, and does not scale well.
-    *   **Complexity:** Requires ICE negotiation (STUN/TURN servers) to bypass firewalls and NATs.
-
-### WebSocket (Bidirectional TCP Stream)
-WebSockets provide a persistent, full-duplex communication channel over a single TCP connection.
-
-*   **Why WebSocket is Used (for Internal & Edge Gateway Ingestion):**
-    *   **Implementation Simplicity:** Native support in standard application gateways (FastAPI/ASGI) with standard HTTP/S port binding (80/443), making firewall traversal effortless.
-    *   **Guaranteed Delivery:** Built on TCP, ensuring that no audio frame is lost due to packet drops, making downstream transcription processing deterministic.
-    *   **Stateless Scaling:** Standard HTTP load balancers can distribute WebSocket connections easily (with sticky routing or session sharing).
-*   **Disadvantages:**
-    *   **Head-of-Line Blocking:** If a packet is lost, TCP pauses the stream until the packet is retransmitted. This can cause temporary spikes in streaming latency over weak connections.
-
-| Feature | WebRTC (UDP/RTP) | WebSocket (TCP) |
-| :--- | :--- | :--- |
-| **Transport Protocol** | UDP (primarily) | TCP |
-| **Latency** | Extremely low (<150ms) | Low (150ms - 500ms) |
-| **Reliability** | Best effort (packets can drop) | Guaranteed delivery (no drops) |
-| **Infrastructure Overhead** | High (Requires STUN/TURN, SFU/Gateway) | Low (Standard HTTPS Load Balancer) |
-| **Usage in Copilot** | **Edge Client Ingestion** (App to Media Gateway) | **Gateway to Audio Processing Core** (FastAPI) |
+An enterprise-grade, low-latency, and deterministic clinical assistant system designed for live consultation session recording, real-time speech processing, clinical fact extraction, and safety-focused rule-based clinical reasoning.
 
 ---
 
-## 2. Technical Architecture Diagram
+## 1. Executive Summary & Core Capabilities
+
+The **Clinical Consultation Copilot** acts as an ambient assistant during doctor-patient consultations. It consumes raw audio streams from multiple participants (Doctor, Patient, and Attender), processes them through speech-to-text and speaker-diarization layers, extracts structured clinical facts, and evaluates the clinical state against a safety-first clinical reasoning engine.
+
+### What the System Can Do:
+*   **Multi-Role Audio Streaming:** Ingests live PCM audio from three separate client microphones (Doctor, Patient, Attender) simultaneously with sub-100ms latency.
+*   **Speaker Diarization & Alignment:** Uses PyAnnote to segment speakers and matches the spoken transcripts with their roles, forming a structured conversational timeline.
+*   **Speech-to-Text Processing:** Integrates with ElevenLabs Scribe V2 and OpenAI Whisper to transcribe audio segments on-the-fly.
+*   **Clinical Entity Extraction:** Normalizes colloquial layman terminology and extracts key medical entities (Symptoms, Medications, Tentative Diagnoses, Procedures, Risk Factors, and Family History).
+*   **Safety-First Clinical Reasoning:** Runs a fully deterministic, explainable, and LLM-free reasoning engine to:
+    *   *Score Candidate Diagnoses:* Ranks potential conditions based on clinical rule weights, vitals, age, gender, and negation penalties.
+    *   *Detect Red Flags:* Flags life-threatening conditions (e.g., Acute Coronary Syndrome, Anaphylaxis) requiring immediate attention.
+    *   *Perform Safety Checks:* Checks for drug-drug interactions and patient-specific contraindications (e.g., prescribing a drug to an allergic patient).
+    *   *Suggest Next Steps:* Recommends targeted clinical investigations and identifies missing critical information to help the doctor during the visit.
+
+---
+
+## 2. End-to-End Ingestion & Processing Pipeline
+
+The diagram below outlines the full flow of information from physical microphone vibrations to structured clinical intelligence outputs.
 
 ```
- +------------------+      +-------------------+      +---------------------+
- |    Doctor Mic    |      |    Patient Mic    |      |     Attender Mic    |
- | (Client App Web) |      | (Client App Web)  |      |  (Client App Web)   |
- +--------+---------+      +---------+---------+      +----------+----------+
-          |                          |                           |
-          | WebRTC Media Stream      | WebRTC Media Stream       | WebRTC Media Stream
-          v                          v                           v
- +--------------------------------------------------------------------------+
- |                    WebRTC Media Gateway (Edge SFU)                       |
- |  (Terminates WebRTC UDP packets, converts to raw PCM 16-bit Mono 16kHz)  |
- +-------------------------------------+------------------------------------+
-                                       |
-                                       | WebSocket Connections (TCP, TLS)
-                                       v
- +--------------------------------------------------------------------------+
- |                      FastAPI Ingestion Gateway                           |
- |      - Handshake Authentication (Token validation)                       |
- |      - Active Session Registry (SessionManager)                          |
- |      - Endpoint: /v1/streaming/audio                                     |
- +-------------------------------------+------------------------------------+
-                                       |
-                                       | Decoded Byte Streams
-                                       v
- +--------------------------------------------------------------------------+
- |                       Audio Streaming Service                            |
- |      - Dynamic Audio Frame Validation (Checks bit depth, rate, length)   |
- |      - Buffer Manager (Accumulates 20-50ms frames into 1.0s chunks)      |
- +-------------------------------------+------------------------------------+
-                                       |
-                                       | Buffered PCM Chunks (1.0s / 32KB)
-                                       v
- +--------------------------------------------------------------------------+
- |                       Audio Frame Buffer Queue                           |
- |       - Exposes FIFO asyncio.Queue per role                              |
- |       - Ready to be read by downstream Scribe V2 transcription service   |
- +--------------------------------------------------------------------------+
++--------------------+
+| Doctor / Patient / |
+| Attender Microphones|
++---------+----------+
+          |
+          | WebRTC (UDP/RTP)
+          v
++--------------------+
+| WebRTC Media GW    | (Terminates WebRTC UDP packets, converts to raw LPCM)
++---------+----------+
+          |
+          | WebSocket Connection (ws:// or wss://)
+          v
++--------------------+
+| FastAPI Ingest GW  | [app/api/websocket.py]
+| (Auth, Sessions)   | - Handshake & active session verification
++---------+----------+
+          |
+          | Micro-frames (20-50ms)
+          v
++--------------------+
+| Audio Buffer Mgr   | [app/services/audio_buffer.py]
+| (Validation & Buff)| - Validates LPCM parameters, aggregates into 1.0s chunks
++---------+----------+
+          |
+          | 1.0s PCM Chunks
+          v
++--------------------+
+| Speech-to-Text /   | [app/services/stt_worker.py]
+| Diarization Worker | - ElevenLabs Scribe V2 / Whisper transcription
++---------+----------+ - PyAnnote diarization speaker alignment
+          |
+          | Aligned Conversation Utterances (Role + Transcript)
+          v
++--------------------+
+| Term Normalizer &  | [app/services/clinical/pipeline.py]
+| Entity Extractor   | - Maps colloquial terms to medical terminologies
++---------+----------+ - Filters negated items and updates ClinicalState
+          |
+          | ClinicalState (Vitals, Symptoms, Meds, History)
+          v
++--------------------+
+| Clinical Reasoning | [clinical_intelligence/rule_engine/engine.py]
+| Engine (Module 1)  | - Runs deterministic checks against YAML rulesets
++---------+----------+
+          |
+          v
++-------------------------------------------------------------------------------+
+|                        CLINICAL REASONING RESULTS                             |
+|  - Candidate Diagnoses (ranked)   - Red Flag Alerts      - Risk Factors       |
+|  - Investigation Recommendations  - Missing Info Questions                    |
+|  - Contraindications & Drug-Drug Interactions - Complete Explainability Trace |
++-------------------------------------------------------------------------------+
 ```
 
 ---
 
-## 3. Directory Structure
+## 3. Milestone 1: Audio Processing & Clinical Extraction Pipeline
 
-This project follows a clean, production-grade modular design pattern:
+### Step 1: Audio Ingestion Layer
+*   **Protocol:** WebSocket (`ws://` or `wss://`) endpoint at `/v1/streaming/audio`
+*   **PCM Contract:** Raw LPCM 16-bit Mono, 16 kHz sample rate, little-endian.
+*   **Buffering Strategy:** Accumulates client micro-frames (20-50ms) into **1.0 second chunks** (32,000 bytes) to minimize downstream API latency and network overhead.
+*   **Drop & Reconnect Policy:** If a client drops due to network handoff, the session manager keeps the buffer state active and resumes appending once the client reconnects.
+
+#### Connection Handshake Query Parameters
+*   `session_id` (string, Required): Unique session UUID.
+*   `role` (string, Required): One of `doctor`, `patient`, or `attender`.
+*   `token` (string, Required): Handshake authentication token.
+
+### Step 2: Speech-to-Text (STT) Layer
+Transcribes PCM chunks using pluggable providers:
+*   **ElevenLabs Scribe V2:** Recommended provider for low-latency streaming transcription.
+*   **OpenAI Whisper:** Alternative provider for local or batch execution.
+
+### Step 3: Diarization & Speaker Alignment Layer
+*   Uses **PyAnnote speaker-diarization-3.1** to segment audio.
+*   Determines which participant was speaking at any given time.
+*   Merges speaker timeline segments and aligns them with transcripts, outputting role-annotated conversational turns.
+
+### Step 4: Clinical Extraction & State Engine
+*   **Terminology Normalization:** Translates layman descriptions into formal medical terms (e.g., "throbbing right sided head pain" -> "unilateral throbbing headache").
+*   **Entity Extraction:** Extracts clinical entities (symptoms, diagnoses, medications, procedures, risk factors, family histories) from the normalized turns.
+*   **Negation Classifier:** Identifies whether a symptom is present or explicitly negated (e.g., "No, I don't have a fever" -> `present: False`).
+*   **Clinical State Engine:** Aggregates facts across all dialogue turns and maintains a thread-safe, session-level `ClinicalState` object.
+
+---
+
+## 4. Milestone 2: Rule-Based Clinical Reasoning Engine
+
+The clinical reasoning engine is a deterministic, rule-based medical intelligence pipeline. It uses **no LLMs** during reasoning, ensuring absolute predictability, speed, and auditability.
+
+### Engine Components (`clinical_intelligence/rule_engine/`)
+
+1.  **`ClinicalReasoningEngine` ([engine.py](file:///c:/Intern/transcriptmodel/clinical_intelligence/rule_engine/engine.py)):**
+    Orchestrates the entire reasoning pass, parses incoming `ClinicalState`, loads rules, coordinates sub-components, and structures the final response.
+2.  **`SymptomMatcher` ([matcher.py](file:///c:/Intern/transcriptmodel/clinical_intelligence/rule_engine/matcher.py)):**
+    Matches extracted patient symptoms against candidate conditions. Uses alias mappings to resolve colloquial synonyms.
+3.  **`RiskFactorEvaluator` ([risk_evaluator.py](file:///c:/Intern/transcriptmodel/clinical_intelligence/rule_engine/risk_evaluator.py)):**
+    Searches the patient's medical history, current medications, allergies, and family history to identify matches for defined clinical risk factors.
+4.  **`DiseaseScorer` ([scorer.py](file:///c:/Intern/transcriptmodel/clinical_intelligence/rule_engine/scorer.py)):**
+    Calculates disease scores ($0.0$ to $1.0$) by summing weights of cardinal/supportive symptoms, applying modifiers for age/gender, satisfying vital signs criteria, and applying negation penalties.
+5.  **`RedFlagDetector` ([red_flags.py](file:///c:/Intern/transcriptmodel/clinical_intelligence/rule_engine/red_flags.py)):**
+    Identifies life-threatening scenarios (e.g., cardiac arrest, sepsis, stroke indicators) that demand immediate clinical action.
+6.  **`ContraindicationChecker` ([contraindications.py](file:///c:/Intern/transcriptmodel/clinical_intelligence/rule_engine/contraindications.py)):**
+    Cross-references current or proposed procedures and medications against the patient's allergies and medical history to alert on absolute or relative contraindications.
+7.  **`DrugInteractionDetector` ([interactions.py](file:///c:/Intern/transcriptmodel/clinical_intelligence/rule_engine/interactions.py)):**
+    Scans the patient's current medications list to detect drug-drug interactions (classified as Major, Moderate, or Minor).
+8.  **`InvestigationRecommender` ([investigations.py](file:///c:/Intern/transcriptmodel/clinical_intelligence/rule_engine/investigations.py)):**
+    Proposes clinical tests, labs, or imaging based on suspected diagnoses and elevates their urgency if active red flags are present.
+9.  **`MissingInfoDetector` ([missing_info.py](file:///c:/Intern/transcriptmodel/clinical_intelligence/rule_engine/missing_info.py)):**
+    Evaluates what crucial clinical information (e.g., pain radiation, symptom duration) is missing for candidate conditions and generates targeted questions for the doctor to ask.
+10. **`ExplainabilityTracer` ([explainability.py](file:///c:/Intern/transcriptmodel/clinical_intelligence/rule_engine/explainability.py)):**
+    Records every evaluation step, rule match, and score modification, compiling a comprehensive audit trail for transparency.
+
+### Configurable Rule Definition Files (`clinical_intelligence/rules/`)
+
+All rules are defined in readable, hot-reloadable YAML files:
+*   [`symptoms.yaml`](file:///c:/Intern/transcriptmodel/clinical_intelligence/rules/symptoms.yaml): Mappings of canonical symptoms to lists of layperson aliases.
+*   [`diseases.yaml`](file:///c:/Intern/transcriptmodel/clinical_intelligence/rules/diseases.yaml): Primary disease models with symptom weights, vitals criteria, age/gender modifiers, and negation penalties.
+*   [`risk_factors.yaml`](file:///c:/Intern/transcriptmodel/clinical_intelligence/rules/risk_factors.yaml): Mappings from patient history, allergies, and family history to clinical risk factor IDs.
+*   [`red_flags.yaml`](file:///c:/Intern/transcriptmodel/clinical_intelligence/rules/red_flags.yaml): Definition of critical scenarios, severities, and immediate actions.
+*   [`contraindications.yaml`](file:///c:/Intern/transcriptmodel/clinical_intelligence/rules/contraindications.yaml): Rules specifying under what conditions specific drugs or procedures are contra-indicated.
+*   [`drug_interactions.yaml`](file:///c:/Intern/transcriptmodel/clinical_intelligence/rules/drug_interactions.yaml): Structured lists of drug-drug interactions, clinical mechanisms, and recommendations.
+*   [`investigations.yaml`](file:///c:/Intern/transcriptmodel/clinical_intelligence/rules/investigations.yaml): Definitions of diagnostic tests, target diseases, baseline priorities, and red-flag escalations.
+
+### Clinical Knowledge Graph Engine (`clinical_intelligence/knowledge_graph/`)
+
+The Knowledge Graph acts as an evidence enrichment database mapped to standard clinical schemas. It resolves relationships (such as `Disease -> Symptoms`, `Medication -> Interactions`) using Cypher projections, and enriches candidates without altering deterministic rankings.
+
+1.  **`Neo4jConnectionManager` ([graph_manager.py](file:///c:/Intern/transcriptmodel/clinical_intelligence/knowledge_graph/graph_manager.py)):**
+    Coordinates active connections to the Neo4j database using unique constraints and indexes. Implements connection-failure degradation to run Rule Engine normally without crashing.
+2.  **`GraphQueryEngine` ([graph_queries.py](file:///c:/Intern/transcriptmodel/clinical_intelligence/knowledge_graph/graph_queries.py)):**
+    Executes parameterized traversals (e.g. connected guidelines, treatment recommendations, structured symptom-disease paths) and profiles execution times.
+3.  **`GraphQueryCache` ([cache.py](file:///c:/Intern/transcriptmodel/clinical_intelligence/knowledge_graph/cache.py)):**
+    Provides a TTL-based query cache layer to satisfy the <20 ms traversal time requirement and tracks hit/miss performance ratios.
+4.  **`Graph Builder & Importer` ([importer.py](file:///c:/Intern/transcriptmodel/clinical_intelligence/knowledge_graph/importer.py)):**
+    Pre-compiles YAML definitions into graph elements. Enforces pre-import constraints (aborts on duplicate nodes, dangling edges, invalid labels, or orphans) to ensure graph consistency.
+5.  **`EvidenceAggregator` ([aggregator.py](file:///c:/Intern/transcriptmodel/clinical_intelligence/rule_engine/aggregator.py)):**
+    A lightweight broker layer that queries the graph for candidate diagnoses and attaches a structured `GraphEvidence` model payload to candidates.
+
+---
+
+## 5. Directory Structure
 
 ```
 c:/Intern/transcriptmodel/
 ├── requirements.txt                  # Python dependencies
 ├── test_client.py                    # Multi-role simulation client
-├── app/
-│   ├── __init__.py                   # Package initialization
-│   ├── main.py                       # FastAPI application entrypoint & health checks
+├── generate_pdf_report.py            # PDF report compiler
+├── generate_summary_report.py        # Cohesive clinical summary compiler
+├── verify_step_4.py                  # Step 4 verification runner
+│
+├── app/                              # Milestone 1 Application Core
+│   ├── main.py                       # FastAPI entrypoint
 │   ├── api/
-│   │   ├── __init__.py
-│   │   └── websocket.py              # WebSocket endpoint handler
+│   │   └── websocket.py              # WebSocket ingress endpoint
 │   ├── core/
-│   │   ├── __init__.py
-│   │   ├── config.py                 # Systems configurations (PCM parameters, constraints)
-│   │   └── security.py               # Token authentication and role verification
+│   │   ├── config.py                 # System parameters (PCM size, limits)
+│   │   └── security.py               # Token verification and role auth
 │   ├── services/
-│   │   ├── __init__.py
-│   │   ├── audio_buffer.py           # Audio buffer manager & PCM frame validator
-│   │   └── session.py                # Consultation session and participant registry
+│   │   ├── audio_buffer.py           # Audio frame validation and chunking
+│   │   ├── session.py                # Consultation session registry
+│   │   ├── stt_worker.py             # Speech-to-Text orchestrator
+│   │   ├── diarization_worker.py     # Speaker diarization task coordinator
+│   │   ├── speaker_alignment.py      # Speaker turn & text alignment logic
+│   │   └── clinical/
+│   │       ├── pipeline.py           # Fact extraction & normalization pipeline
+│   │       ├── extractor.py          # Entity extractor from segments
+│   │       ├── normalizer.py         # Normalizes colloquial terms
+│   │       └── state_engine.py       # Manages session ClinicalState
 │   └── utils/
-│       ├── __init__.py
-│       └── logging.py                # Custom JSON structured logging
+│       └── logging.py                # JSON structured logging utility
+│
+├── clinical_intelligence/            # Milestone 2 Clinical Intelligence
+│   ├── integration.py                # Milestone 1 to Milestone 2 shim
+│   ├── rule_engine/                  # Logic components
+│   │   ├── engine.py                 # Core reasoning orchestrator
+│   │   ├── matcher.py                # Symptom mapping & normalization
+│   │   ├── risk_evaluator.py         # Patient risk factors checker
+│   │   ├── scorer.py                 # Disease score builder
+│   │   ├── red_flags.py              # Red flags detector
+│   │   ├── contraindications.py      # Contraindications analyzer
+│   │   ├── interactions.py           # Drug-drug interaction checker
+│   │   ├── investigations.py         # Diagnostic recommender
+│   │   ├── missing_info.py           # Missing info detector
+│   │   ├── explainability.py         # Explainability trace builder
+│   │   ├── models.py                 # Pydantic models for results
+│   │   ├── loader.py                 # Hot-reloading YAML loader
+│   │   ├── aggregator.py             # Broker merging graph evidence
+│   │   └── exceptions.py             # Rule engine exceptions
+│   ├── knowledge_graph/              # Knowledge Graph components
+│   │   ├── graph_manager.py          # Neo4j connection lifecycle & indexes
+│   │   ├── graph_builder.py          # rule elements mapper
+│   │   ├── graph_queries.py          # parameterized query executions
+│   │   ├── graph_models.py           # Neo4j schema definitions
+│   │   ├── cache.py                  # TTL-based traversal cache
+│   │   └── importer.py               # Pre-import validations CLI tool
+│   ├── rules/                        # YAML rule definition files
+│   │   ├── symptoms.yaml
+│   │   ├── diseases.yaml
+│   │   ├── risk_factors.yaml
+│   │   ├── red_flags.yaml
+│   │   ├── contraindications.yaml
+│   │   ├── drug_interactions.yaml
+│   │   └── investigations.yaml
+│   └── tests/                        # Engine unit and integration tests
+│       ├── fixtures/
+│       │   └── sample_clinical_state.json
+│       ├── test_engine.py
+│       ├── test_matcher.py
+│       ├── test_scorer.py
+│       ├── test_red_flags.py
+│       ├── test_contraindications.py
+│       └── test_knowledge_graph.py
 ```
 
 ---
 
-## 4. Backend Audio Ingestion Contract
+## 6. Integration and Usage API
 
-To integrate frontend or mobile clients, follow this contract.
+### Python API Integration
+You can use the integration shim to pass a `session_id` directly or run reasoning from an arbitrary `ClinicalState` / dictionary representation.
 
-### Connection Handshake
-*   **Protocol:** Secure WebSocket (`wss://`) or standard WebSocket (`ws://` for local development)
-*   **Path:** `/v1/streaming/audio`
-*   **Query Parameters:**
-    *   `session_id` (string, Required): The UUID or unique identifier of the consultation session.
-    *   `role` (string, Required): One of `doctor`, `patient`, or `attender`.
-    *   `token` (string, Required): The authorization token corresponding to this consultation session.
-*   **Example URL:**
-    ```
-    ws://127.0.0.1:8000/v1/streaming/audio?session_id=consultation-123&role=doctor&token=production-secure-token-change-me
-    ```
+```python
+from clinical_intelligence.integration import get_reasoning_result, reason_from_state
 
-### Expected Audio Frame Format
-*   **Encoding:** Raw Signed PCM (LPCM)
-*   **Sample Rate:** 16,000 Hz (16 kHz)
-*   **Bit Depth:** 16-bit
-*   **Endianness:** Little-endian (default for standard audio captures)
-*   **Channels:** 1 (Mono)
-*   **Transmission Mode:** Continuous streaming
-*   **Frame Duration:** 20ms to 50ms per packet
-*   **Byte Size Constraints:**
-    *   Formula: `Sample Rate * Channel Count * (Bits Per Sample / 8) * Frame Duration`
-    *   **20ms frame:** `16000 * 1 * 2 * 0.02 = 640 bytes` (Minimum)
-    *   **50ms frame:** `16000 * 1 * 2 * 0.05 = 1600 bytes` (Maximum)
-    *   *Validation rule:* Any packet not aligning with a 2-byte boundary or outside `[640, 1600]` bytes will trigger a validation warning response.
+# Option A: Get reasoning results using session_id from ClinicalStateEngine
+result = get_reasoning_result("session-uuid-1234")
+if result:
+    print(f"Suspected Condition: {result.candidate_diagnoses[0].name}")
+    print(f"Active Red Flags: {len(result.red_flags)}")
 
-### Ingestion Message Schema
-
-#### Option A: Binary Frames (Recommended for Low Overhead)
-Clients stream raw bytes of size `[640, 1600]` over the socket. No headers or wrapper needed.
-
-#### Option B: Text Frames (JSON wrapper)
-Useful if the client needs to convey packet sequence metadata to help monitor network packet loss.
-```json
-{
-  "seq": 45,
-  "audio": "base64_encoded_pcm_bytes..."
+# Option B: Run reasoning directly from a dictionary clinical state
+dummy_state = {
+    "session_id": "manual-state-1",
+    "patient_info": {"age": 55, "gender": "male"},
+    "medical_history": ["hypertension", "diabetes"],
+    "current_medications": ["amlodipine"],
+    "symptoms": [
+        {"name": "chest pain", "severity": "severe", "present": True}
+    ]
 }
+direct_result = reason_from_state(dummy_state)
 ```
 
----
-
-## 5. Audio Frame Buffer Strategy
-
-### Why Buffering is Needed
-Clients capture and stream audio in tiny slices (20–50ms) to ensure minimal local recording latency and avoid network queue delays. However, sending such small buffers to Speech-to-Text APIs (like ElevenLabs Scribe V2) would lead to massive API transaction overhead and network jitter issues. The buffer aggregates these micro-frames into stable **1.0 second chunks** (32,000 bytes) before passing them to the transcription engine, establishing a sweet spot between latency and throughput.
-
-### Memory Considerations
-*   **Per-stream Buffer Limit:** A hard memory cap is set at **10 MB** per connection. If a network outage or backlog exceeds this, the buffer clears to prevent RAM exhaustion.
-*   **Data Structure:** Bytes are appended to a standard Python `bytearray` and sliced when the target size is met, ensuring $O(1)$ memory copies.
-
-### Drop and Reconnect Policies
-*   **Dropped Packets:** The system detects dropped sequence numbers for JSON streams, logging telemetry on connection reliability.
-*   **Reconnection Handling:** When a client reconnects (e.g., due to cellular handoff), the session manager identifies the session and role, binds the new socket, and **reuses the existing buffer**, preventing data loss.
-
----
-
-## 6. End-to-End Latency Analysis
-
-E2E Ingestion Latency measures the time elapsed from the physical microphone vibration to the frame being buffered and ready in memory.
-
-### Latency Pipeline
-1.  **Microphone Capture:** The local device buffers audio samples until the frame size (20-50ms) is reached.
-2.  **Frame Creation:** The client application packages the raw PCM data (binary or base64 JSON).
-3.  **Network Transfer:** The data travels over the cellular/broadband connection to the cloud endpoint.
-4.  **Backend Buffer:** The server receives, parses, validates, and aggregates the frame.
-
-### Production Latency Cases
-
+### Running Tests
+To verify all rule engine logic, schema models, matching rules, and trace explainability, execute:
+```powershell
+# Run all unit and integration tests under clinical_intelligence/tests
+python -m unittest discover -s clinical_intelligence/tests -p "test_*.py"
 ```
-  BEST CASE (Favorable Fiber Network)
-  [Microphone Capture: 20ms] -> [Frame Pack: 1ms] -> [Network: 10ms] -> [Ingest: 1ms]
-  Total: 32ms
-
-  TYPICAL PRODUCTION (Standard 4G/5G Network)
-  [Microphone Capture: 30ms] -> [Frame Pack: 2ms] -> [Network: 45ms] -> [Ingest: 2ms]
-  Total: 79ms
-
-  WORST CASE (Poor Cellular Signal with TCP Jitter)
-  [Microphone Capture: 50ms] -> [Frame Pack: 10ms] -> [Network: 250ms] -> [Ingest: 15ms]
-  Total: 325ms
-```
-
----
-
-## 7. Global Production Scalability
-
-To scale this service from 100 to 10,000+ concurrent consultations globally, we recommend:
-
-1.  **100 Users (Single Server Instance):**
-    *   FastAPI running on standard hardware (e.g., AWS EC2 `t3.medium`) can easily handle 300 active connections (100 sessions $\times$ 3 roles). Since Python is single-threaded, uvicorn should be run with 2–4 workers.
-2.  **1,000 Users (Horizontal Auto-scaling):**
-    *   Deploy nodes behind an Application Load Balancer (ALB). Enable WebSockets with **Sticky Sessions** (session affinity) so that all 3 streams of a single consultation route to the same instance (necessary for local buffering), OR migrate buffer state to a distributed cache like **Redis**.
-3.  **10,000 Users (Global Edge Orchestration):**
-    *   Deploy regional clusters (e.g., US-East, US-West, EU-Central, AP-South) using a geo-DNS router (like Route 53 Geo Routing) to direct clients to the nearest region, minimizing TCP handshakes and network latency.
-
----
-
-## 8. Production Recommendations & Guardrails
-
-*   **Logging:** Output only structured JSON logs (no plain text). Profile ingestion speed and frame metadata.
-*   **Monitoring:** Track Prometheus metrics:
-    *   `active_connections_count`
-    *   `dropped_frames_total`
-    *   `buffer_latency_ms`
-*   **Security & Authentication:** Encrypt all audio traffic over TLS (`wss://`). Authenticate the connection handshake using short-lived tokens.
-*   **Rate Limiting:** Implement limits on connection attempts per IP/API token using Redis Rate Limiter to prevent brute force attacks.
-*   **Health Checks:** Load balancers should monitor the `/health` endpoint to route traffic only to active, responsive nodes.
