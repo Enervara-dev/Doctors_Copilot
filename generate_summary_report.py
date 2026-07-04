@@ -1,3 +1,21 @@
+"""
+Cohesive Consultation Summary Compiler
+
+Purpose:
+Aggregates dialogue history, clinical states, and rule engine traces into a concise overall summary text document.
+
+Module/Component: Reporting Utilities
+"""
+
+"""
+Cohesive Consultation Summary Compiler
+
+Purpose:
+Aggregates dialogue history, clinical states, and rule engine traces into a concise overall summary text document.
+
+Module/Component: Reporting Utilities
+"""
+
 import os
 import sys
 import datetime

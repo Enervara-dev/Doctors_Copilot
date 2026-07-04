@@ -1,3 +1,21 @@
+"""
+Background Speaker Diarization Worker
+
+Purpose:
+Spawns and manages asynchronous background processes running Pyannote 3.1 pipelines to isolate speaker segments.
+
+Module/Component: Diarization & Alignment
+"""
+
+"""
+Background Speaker Diarization Worker
+
+Purpose:
+Spawns and manages asynchronous background processes running Pyannote 3.1 pipelines to isolate speaker segments.
+
+Module/Component: Diarization & Alignment
+"""
+
 # =====================================================================
 # BACKGROUND DIARIZATION WORKER (app/services/diarization_worker.py)
 # =====================================================================

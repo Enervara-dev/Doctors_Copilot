@@ -1,3 +1,21 @@
+"""
+PDF Clinical Summary Compiler
+
+Purpose:
+Compiles session-level diagnostics, red flags, risk factors, medications, and investigations into a formatted PDF clinical report for patient files.
+
+Module/Component: Reporting Utilities
+"""
+
+"""
+PDF Clinical Summary Compiler
+
+Purpose:
+Compiles session-level diagnostics, red flags, risk factors, medications, and investigations into a formatted PDF clinical report for patient files.
+
+Module/Component: Reporting Utilities
+"""
+
 import os
 import sys
 import datetime

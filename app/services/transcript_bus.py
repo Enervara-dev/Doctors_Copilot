@@ -1,3 +1,21 @@
+"""
+Transcription Event Bus
+
+Purpose:
+Coordinates publish-subscribe patterns for transcript turns, notifying the state engine and clinical components of dialogue changes.
+
+Module/Component: Event Infrastructure
+"""
+
+"""
+Transcription Event Bus
+
+Purpose:
+Coordinates publish-subscribe patterns for transcript turns, notifying the state engine and clinical components of dialogue changes.
+
+Module/Component: Event Infrastructure
+"""
+
 # =====================================================================
 # TRANSCRIPT EVENT BUS (app/services/transcript_bus.py)
 # =====================================================================

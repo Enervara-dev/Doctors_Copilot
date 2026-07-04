@@ -1,3 +1,14 @@
+from __future__ import annotations
+
+"""
+exceptions.py Component
+
+Purpose:
+Part of the Clinical Intelligence workspace layout. Handles logic, routines, or configurations in this layer.
+
+Module/Component: Clinical Intelligence
+"""
+
 """
 Custom exception hierarchy for the Clinical Reasoning Engine.
 
@@ -5,9 +16,6 @@ All engine exceptions inherit from ClinicalReasoningError, making it
 trivial to catch at the application boundary without masking unrelated
 runtime errors.
 """
-
-from __future__ import annotations
-
 
 class ClinicalReasoningError(Exception):
     """Base exception for all clinical reasoning errors."""

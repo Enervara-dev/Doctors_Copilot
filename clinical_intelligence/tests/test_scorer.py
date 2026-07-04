@@ -1,4 +1,13 @@
 """
+Test suite for scorer
+
+Purpose:
+Defines automated unit and integration tests to verify code coverage and correctness.
+
+Module/Component: Test Suites
+"""
+
+"""
 Tests for the DiseaseScorer — confidence normalisation, vitals, and risk factor modifiers.
 """
 

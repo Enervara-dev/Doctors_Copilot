@@ -1,3 +1,21 @@
+"""
+Background Speech-to-Text Processor
+
+Purpose:
+Consumes buffered audio chunks and schedules background STT transcription jobs to maintain near-real-time latency.
+
+Module/Component: Transcription Services
+"""
+
+"""
+Background Speech-to-Text Processor
+
+Purpose:
+Consumes buffered audio chunks and schedules background STT transcription jobs to maintain near-real-time latency.
+
+Module/Component: Transcription Services
+"""
+
 # =====================================================================
 # BACKGROUND STT WORKER LOOP (app/services/stt_worker.py)
 # =====================================================================
@@ -203,4 +221,3 @@ async def stt_worker_task(stream, provider) -> None:
                 pass
         # Clean up provider connection
         await provider.disconnect()
-

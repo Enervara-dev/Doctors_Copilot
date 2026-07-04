@@ -1,3 +1,23 @@
+from __future__ import annotations
+
+"""
+State-to-Engine Integration Shim
+
+Purpose:
+Converts application-layer ClinicalState data schemas into reasoning-engine ruleset inputs.
+
+Module/Component: Reasoning Integration
+"""
+
+"""
+State-to-Engine Integration Shim
+
+Purpose:
+Converts application-layer ClinicalState data schemas into reasoning-engine ruleset inputs.
+
+Module/Component: Reasoning Integration
+"""
+
 """
 Integration shim — bridges Milestone 1 ClinicalStateEngine with the
 Rule-Based Clinical Reasoning Engine (Milestone 2, Module 1).
@@ -9,8 +29,6 @@ Usage::
     # Inside a FastAPI route or background task:
     result = get_reasoning_result(session_id)
 """
-
-from __future__ import annotations
 
 import logging
 from typing import Optional
@@ -75,4 +93,3 @@ def reason_from_state(state: object) -> ClinicalReasoningResult:
     run_llm = bool(os.getenv("GEMINI_API_KEY") or os.getenv("OPENAI_API_KEY"))
     engine = _get_engine()
     return engine.reason(state, run_llm=run_llm)
-

@@ -1,4 +1,14 @@
 from __future__ import annotations
+
+"""
+heart.py Component
+
+Purpose:
+Part of the Clinical Intelligence workspace layout. Handles logic, routines, or configurations in this layer.
+
+Module/Component: Clinical Intelligence
+"""
+
 import re
 from typing import Any, Dict, List, Optional, Set
 from clinical_intelligence.rule_engine.scores import ClinicalScoreEvaluator

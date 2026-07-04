@@ -1,3 +1,21 @@
+"""
+Speech-to-Text Router
+
+Purpose:
+Dynamically instantiates and routes audio transcript requests to active providers like OpenAI Whisper or ElevenLabs Scribe.
+
+Module/Component: Transcription Services
+"""
+
+"""
+Speech-to-Text Router
+
+Purpose:
+Dynamically instantiates and routes audio transcript requests to active providers like OpenAI Whisper or ElevenLabs Scribe.
+
+Module/Component: Transcription Services
+"""
+
 import asyncio
 from typing import Dict, Tuple, Set, Optional
 from app.services.session import session_manager, ParticipantStream

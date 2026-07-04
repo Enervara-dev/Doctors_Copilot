@@ -1,3 +1,12 @@
+"""
+models.py Component
+
+Purpose:
+Part of the App workspace layout. Handles logic, routines, or configurations in this layer.
+
+Module/Component: App
+"""
+
 from typing import List, Optional, Dict, Any
 from pydantic import BaseModel, Field
 
@@ -124,4 +133,3 @@ class ClinicalState(BaseModel):
     examination: List[ExaminationFinding] = Field(default_factory=list)
     audit_trail: List[Dict[str, Any]] = Field(default_factory=list)
     version: int = 1
-

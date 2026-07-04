@@ -1,3 +1,12 @@
+"""
+Test suite for conversation_processing
+
+Purpose:
+Defines automated unit and integration tests to verify code coverage and correctness.
+
+Module/Component: Test Suites
+"""
+
 import unittest
 from app.services.conversation.filler_remover import FillerRemover
 from app.services.conversation.utterance_merger import UtteranceMerger

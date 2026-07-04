@@ -1,3 +1,12 @@
+"""
+__init__.py Component
+
+Purpose:
+Part of the App workspace layout. Handles logic, routines, or configurations in this layer.
+
+Module/Component: App
+"""
+
 from app.services.clinical.extractors.name_extractor import NameExtractor
 from app.services.clinical.extractors.symptom_extractor import SymptomExtractor
 from app.services.clinical.extractors.medication_extractor import MedicationExtractor

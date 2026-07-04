@@ -1,4 +1,23 @@
 from __future__ import annotations
+
+"""
+Graph Pre-Import Constraints Tool
+
+Purpose:
+Validates guideline consistency, checks for duplicate nodes, and imports rulesets into Neo4j.
+
+Module/Component: Knowledge Graph
+"""
+
+"""
+Graph Pre-Import Constraints Tool
+
+Purpose:
+Validates guideline consistency, checks for duplicate nodes, and imports rulesets into Neo4j.
+
+Module/Component: Knowledge Graph
+"""
+
 import sys
 import time
 import logging

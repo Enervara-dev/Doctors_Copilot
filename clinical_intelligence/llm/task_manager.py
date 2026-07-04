@@ -1,4 +1,14 @@
 from __future__ import annotations
+
+"""
+task_manager.py Component
+
+Purpose:
+Part of the Clinical Intelligence workspace layout. Handles logic, routines, or configurations in this layer.
+
+Module/Component: Clinical Intelligence
+"""
+
 import time
 import logging
 import asyncio

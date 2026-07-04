@@ -1,4 +1,14 @@
 from __future__ import annotations
+
+"""
+event_bus.py Component
+
+Purpose:
+Part of the Clinical Intelligence workspace layout. Handles logic, routines, or configurations in this layer.
+
+Module/Component: Clinical Intelligence
+"""
+
 import inspect
 import asyncio
 import logging

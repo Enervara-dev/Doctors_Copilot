@@ -1,4 +1,23 @@
 from __future__ import annotations
+
+"""
+Neo4j Connection Manager
+
+Purpose:
+Manages the lifecycle of Neo4j Aura connections, verifying constraints and recovering from offline states.
+
+Module/Component: Knowledge Graph
+"""
+
+"""
+Neo4j Connection Manager
+
+Purpose:
+Manages the lifecycle of Neo4j Aura connections, verifying constraints and recovering from offline states.
+
+Module/Component: Knowledge Graph
+"""
+
 import os
 import logging
 from typing import Any, Dict, List, Optional

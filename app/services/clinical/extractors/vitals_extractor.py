@@ -1,3 +1,12 @@
+"""
+vitals_extractor.py Component
+
+Purpose:
+Part of the App workspace layout. Handles logic, routines, or configurations in this layer.
+
+Module/Component: App
+"""
+
 import re
 from typing import Dict, Optional, Any
 from app.services.clinical.models import VitalObservation
@@ -151,4 +160,3 @@ class VitalsExtractor:
             )
 
         return results
-

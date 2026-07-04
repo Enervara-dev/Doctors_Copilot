@@ -1,4 +1,14 @@
 from __future__ import annotations
+
+"""
+rag.py Component
+
+Purpose:
+Part of the Clinical Intelligence workspace layout. Handles logic, routines, or configurations in this layer.
+
+Module/Component: Clinical Intelligence
+"""
+
 import os
 
 # Paths to YAML documents registry

@@ -1,3 +1,21 @@
+"""
+FastAPI Server Core Entrypoint
+
+Purpose:
+Configures and boots the FastAPI web server, loading global middleware, API routes, WebSocket controllers, and background diarization queues.
+
+Module/Component: API Core
+"""
+
+"""
+FastAPI Server Core Entrypoint
+
+Purpose:
+Configures and boots the FastAPI web server, loading global middleware, API routes, WebSocket controllers, and background diarization queues.
+
+Module/Component: API Core
+"""
+
 import os
 os.environ["HF_HUB_OFFLINE"] = "1"
 
@@ -115,4 +133,3 @@ async def get_clinical_reasoning(session_id: str):
     if not result:
         return {"message": "No reasoning results available yet."}
     return result.model_dump()
-

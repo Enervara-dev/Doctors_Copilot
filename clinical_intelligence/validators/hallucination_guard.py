@@ -1,4 +1,14 @@
 from __future__ import annotations
+
+"""
+hallucination_guard.py Component
+
+Purpose:
+Part of the Clinical Intelligence workspace layout. Handles logic, routines, or configurations in this layer.
+
+Module/Component: Clinical Intelligence
+"""
+
 import logging
 from typing import Any, Dict, List, Set, Tuple
 

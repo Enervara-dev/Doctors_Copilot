@@ -1,3 +1,21 @@
+"""
+PCM Debugging Audio Tap
+
+Purpose:
+Writes raw incoming PCM audio frames to disk files to facilitate diagnostic validation of audio ingress quality.
+
+Module/Component: Ingestion Services
+"""
+
+"""
+PCM Debugging Audio Tap
+
+Purpose:
+Writes raw incoming PCM audio frames to disk files to facilitate diagnostic validation of audio ingress quality.
+
+Module/Component: Ingestion Services
+"""
+
 # =====================================================================
 # AUDIO TAP ROUTER (app/services/audio_tap.py)
 # =====================================================================

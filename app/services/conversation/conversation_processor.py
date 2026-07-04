@@ -1,3 +1,12 @@
+"""
+conversation_processor.py Component
+
+Purpose:
+Part of the App workspace layout. Handles logic, routines, or configurations in this layer.
+
+Module/Component: App
+"""
+
 from typing import Optional, List
 from app.services.conversation.filler_remover import FillerRemover
 from app.services.conversation.utterance_merger import UtteranceMerger

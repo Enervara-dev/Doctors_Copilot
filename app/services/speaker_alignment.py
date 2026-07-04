@@ -1,3 +1,21 @@
+"""
+Speaker Turn & Transcript Aligner
+
+Purpose:
+Performs word-level alignment, mapping diarized speaker segments to transcribed dialogue turns to determine who said what.
+
+Module/Component: Diarization & Alignment
+"""
+
+"""
+Speaker Turn & Transcript Aligner
+
+Purpose:
+Performs word-level alignment, mapping diarized speaker segments to transcribed dialogue turns to determine who said what.
+
+Module/Component: Diarization & Alignment
+"""
+
 # =====================================================================
 # SPEAKER ALIGNMENT LAYER (app/services/speaker_alignment.py)
 # =====================================================================

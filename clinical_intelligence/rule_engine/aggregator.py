@@ -1,4 +1,23 @@
 from __future__ import annotations
+
+"""
+Evidence Integration Broker
+
+Purpose:
+Fuses Neo4j Knowledge Graph and guideline guidelines onto candidate reasoning scores.
+
+Module/Component: Rule Engine Core
+"""
+
+"""
+Evidence Integration Broker
+
+Purpose:
+Fuses Neo4j Knowledge Graph and guideline guidelines onto candidate reasoning scores.
+
+Module/Component: Rule Engine Core
+"""
+
 import logging
 from typing import Any, Dict, List
 from clinical_intelligence.rule_engine.models import CandidateDiagnosis

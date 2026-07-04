@@ -1,3 +1,21 @@
+"""
+Offline Diarization Benchmark Runner
+
+Purpose:
+Benchmarks offline Pyannote speaker diarization accuracy, segment merges, and speaker timeline overlap resolutions on sample WAV files.
+
+Module/Component: Developer Utilities
+"""
+
+"""
+Offline Diarization Benchmark Runner
+
+Purpose:
+Benchmarks offline Pyannote speaker diarization accuracy, segment merges, and speaker timeline overlap resolutions on sample WAV files.
+
+Module/Component: Developer Utilities
+"""
+
 import sys
 import unittest
 from app.services.speaker_timeline import SpeakerTimeline

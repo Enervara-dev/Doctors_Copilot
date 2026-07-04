@@ -1,3 +1,21 @@
+"""
+Clinical State Schema Validator
+
+Purpose:
+Validates the integrity, types, and schema boundaries of ClinicalState objects to prevent downstream reasoning errors.
+
+Module/Component: Clinical Ingestion
+"""
+
+"""
+Clinical State Schema Validator
+
+Purpose:
+Validates the integrity, types, and schema boundaries of ClinicalState objects to prevent downstream reasoning errors.
+
+Module/Component: Clinical Ingestion
+"""
+
 import time
 from typing import Dict, Any, List
 from app.services.clinical.models import ClinicalState, SymptomEntity, VitalObservation

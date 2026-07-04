@@ -1,3 +1,21 @@
+"""
+Token Validation & Security Utilities
+
+Purpose:
+Handles API authentication token validation, signature checks, and role-based access control (Doctor, Patient, Attender).
+
+Module/Component: API Core
+"""
+
+"""
+Token Validation & Security Utilities
+
+Purpose:
+Handles API authentication token validation, signature checks, and role-based access control (Doctor, Patient, Attender).
+
+Module/Component: API Core
+"""
+
 from typing import Optional
 from app.core.config import settings
 from app.utils.logging import logger

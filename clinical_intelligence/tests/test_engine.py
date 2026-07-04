@@ -1,4 +1,13 @@
 """
+Test suite for engine
+
+Purpose:
+Defines automated unit and integration tests to verify code coverage and correctness.
+
+Module/Component: Test Suites
+"""
+
+"""
 Full integration tests for the ClinicalReasoningEngine.
 
 Tests run the complete engine end-to-end using the sample clinical state

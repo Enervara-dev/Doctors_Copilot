@@ -1,11 +1,29 @@
+from __future__ import annotations
+
+"""
+Hot-Reloadable Ruleset Loader
+
+Purpose:
+Parses and loads YAML rule definitions, caching them in memory and hot-reloading file changes automatically.
+
+Module/Component: Rule Engine Core
+"""
+
+"""
+Hot-Reloadable Ruleset Loader
+
+Purpose:
+Parses and loads YAML rule definitions, caching them in memory and hot-reloading file changes automatically.
+
+Module/Component: Rule Engine Core
+"""
+
 """
 Rule Loader — YAML rule file loading with hot-reload support.
 
 Loads all rule categories from the rules/ directory. Checks file mtimes on
 every `get()` call and silently reloads changed files. Thread-safe via RLock.
 """
-
-from __future__ import annotations
 
 import logging
 import os

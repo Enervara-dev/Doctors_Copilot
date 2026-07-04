@@ -1,3 +1,23 @@
+from __future__ import annotations
+
+"""
+Disease Candidate Scorer
+
+Purpose:
+Calculates disease candidate confidence scores using symptom weights, age/gender modifiers, and negation penalties.
+
+Module/Component: Rule Engine Core
+"""
+
+"""
+Disease Candidate Scorer
+
+Purpose:
+Calculates disease candidate confidence scores using symptom weights, age/gender modifiers, and negation penalties.
+
+Module/Component: Rule Engine Core
+"""
+
 """
 Disease Confidence Scorer.
 
@@ -5,8 +25,6 @@ Converts raw SymptomMatchResult objects into normalised confidence scores
 [0, 1] by applying demographic, vital-sign, risk-factor, and negation
 modifiers defined in the disease rules.
 """
-
-from __future__ import annotations
 
 import logging
 import re

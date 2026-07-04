@@ -1,3 +1,23 @@
+from __future__ import annotations
+
+"""
+Symptom Synonym Matcher
+
+Purpose:
+Resolves colloquial synonyms to canonical symptom models using compiled rulesets and alias mappings.
+
+Module/Component: Rule Engine Core
+"""
+
+"""
+Symptom Synonym Matcher
+
+Purpose:
+Resolves colloquial synonyms to canonical symptom models using compiled rulesets and alias mappings.
+
+Module/Component: Rule Engine Core
+"""
+
 """
 Symptom Matcher — Weighted, alias-normalised symptom matching.
 
@@ -8,8 +28,6 @@ For each disease definition the matcher:
 4. Applies negation penalties for negated cardinal symptoms.
 5. Returns a list of SymptomMatchResult sorted by raw_score descending.
 """
-
-from __future__ import annotations
 
 import logging
 import re

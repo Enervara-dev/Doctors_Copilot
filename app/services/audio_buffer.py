@@ -1,3 +1,21 @@
+"""
+PCM Streaming Audio Buffer
+
+Purpose:
+Validates, decodes, and buffers micro-frame raw PCM audio chunks into larger 1.0s blocks to throttle downstream STT workers.
+
+Module/Component: Ingestion Services
+"""
+
+"""
+PCM Streaming Audio Buffer
+
+Purpose:
+Validates, decodes, and buffers micro-frame raw PCM audio chunks into larger 1.0s blocks to throttle downstream STT workers.
+
+Module/Component: Ingestion Services
+"""
+
 import asyncio
 import time
 from typing import Dict, Optional, Generator

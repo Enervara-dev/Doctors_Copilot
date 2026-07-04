@@ -1,11 +1,29 @@
+from __future__ import annotations
+
+"""
+Clinical Contraindication Checker
+
+Purpose:
+Identifies absolute or relative contraindications by matching history and allergies against proposed actions.
+
+Module/Component: Rule Engine Core
+"""
+
+"""
+Clinical Contraindication Checker
+
+Purpose:
+Identifies absolute or relative contraindications by matching history and allergies against proposed actions.
+
+Module/Component: Rule Engine Core
+"""
+
 """
 Contraindication Checker.
 
 Checks contraindications.yaml rules against the patient's allergies,
 medical history, and current medications.
 """
-
-from __future__ import annotations
 
 import logging
 from typing import Any, Dict, List

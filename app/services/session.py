@@ -1,3 +1,21 @@
+"""
+Consultation Session Registry
+
+Purpose:
+Manages session life cycles, connection states, diarization status, and thread-safe lock pools for active consultations.
+
+Module/Component: Session Management
+"""
+
+"""
+Consultation Session Registry
+
+Purpose:
+Manages session life cycles, connection states, diarization status, and thread-safe lock pools for active consultations.
+
+Module/Component: Session Management
+"""
+
 import asyncio
 from typing import Dict, Set, Optional
 from fastapi import WebSocket

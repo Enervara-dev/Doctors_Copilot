@@ -1,3 +1,23 @@
+from __future__ import annotations
+
+"""
+Drug-Drug Interaction Checker
+
+Purpose:
+Scans proposed and existing patient drug registries for clinical interactions and severities.
+
+Module/Component: Rule Engine Core
+"""
+
+"""
+Drug-Drug Interaction Checker
+
+Purpose:
+Scans proposed and existing patient drug registries for clinical interactions and severities.
+
+Module/Component: Rule Engine Core
+"""
+
 """
 Drug Interaction Detector.
 
@@ -5,8 +25,6 @@ Checks drug_interactions.yaml pairwise against:
   - current patient medications × current patient medications
   - current patient medications × recommended investigation/treatment drugs
 """
-
-from __future__ import annotations
 
 import logging
 from typing import Any, Dict, List, Set, Tuple

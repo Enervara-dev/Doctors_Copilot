@@ -1,11 +1,29 @@
+from __future__ import annotations
+
+"""
+Safety Red Flags Detector
+
+Purpose:
+Fuses symptoms and vital criteria to immediately detect emergency scenarios requiring hospital escalation.
+
+Module/Component: Rule Engine Core
+"""
+
+"""
+Safety Red Flags Detector
+
+Purpose:
+Fuses symptoms and vital criteria to immediately detect emergency scenarios requiring hospital escalation.
+
+Module/Component: Rule Engine Core
+"""
+
 """
 Red Flag Detector.
 
 Evaluates each entry in red_flags.yaml against the patient's clinical state
 and returns a list of RedFlagAlert objects ordered by severity.
 """
-
-from __future__ import annotations
 
 import logging
 import re

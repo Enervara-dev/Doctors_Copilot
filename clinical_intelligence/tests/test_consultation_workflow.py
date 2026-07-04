@@ -1,4 +1,14 @@
 from __future__ import annotations
+
+"""
+Test suite for consultation_workflow
+
+Purpose:
+Defines automated unit and integration tests to verify code coverage and correctness.
+
+Module/Component: Test Suites
+"""
+
 import unittest
 import asyncio
 import time

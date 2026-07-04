@@ -1,4 +1,14 @@
 from __future__ import annotations
+
+"""
+Test suite for benchmark_pipeline
+
+Purpose:
+Defines automated unit and integration tests to verify code coverage and correctness.
+
+Module/Component: Test Suites
+"""
+
 import time
 import unittest
 import tracemalloc

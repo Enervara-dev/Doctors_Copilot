@@ -1,11 +1,20 @@
+from __future__ import annotations
+
+"""
+models.py Component
+
+Purpose:
+Part of the Clinical Intelligence workspace layout. Handles logic, routines, or configurations in this layer.
+
+Module/Component: Clinical Intelligence
+"""
+
 """
 Pydantic output models for the Rule-Based Clinical Reasoning Engine.
 
 All models are fully typed and validated with Pydantic v2.
 The top-level output is `ClinicalReasoningResult`.
 """
-
-from __future__ import annotations
 
 from datetime import datetime
 from typing import Any, Dict, List, Literal, Optional

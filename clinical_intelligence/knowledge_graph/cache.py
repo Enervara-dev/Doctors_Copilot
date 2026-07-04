@@ -1,4 +1,23 @@
 from __future__ import annotations
+
+"""
+Query Traversal Cache Manager
+
+Purpose:
+Caches Graph Cypher traversals in memory using TTL policies to meet latency requirements.
+
+Module/Component: Knowledge Graph
+"""
+
+"""
+Query Traversal Cache Manager
+
+Purpose:
+Caches Graph Cypher traversals in memory using TTL policies to meet latency requirements.
+
+Module/Component: Knowledge Graph
+"""
+
 import time
 from typing import Any, Dict, Optional
 

@@ -1,4 +1,14 @@
 from __future__ import annotations
+
+"""
+workflow.py Component
+
+Purpose:
+Part of the Clinical Intelligence workspace layout. Handles logic, routines, or configurations in this layer.
+
+Module/Component: Clinical Intelligence
+"""
+
 from typing import Dict, List, Set
 
 # List of all valid consultation stages in order

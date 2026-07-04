@@ -1,3 +1,21 @@
+"""
+Rule Engine Verification Suite
+
+Purpose:
+Validates reasoning engine output correctness against deterministic benchmark inputs, checking candidate scoring accuracy.
+
+Module/Component: Developer Utilities
+"""
+
+"""
+Rule Engine Verification Suite
+
+Purpose:
+Validates reasoning engine output correctness against deterministic benchmark inputs, checking candidate scoring accuracy.
+
+Module/Component: Developer Utilities
+"""
+
 import json
 import re
 from app.services.clinical.pipeline import ClinicalProcessingPipeline

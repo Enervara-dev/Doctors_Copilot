@@ -1,3 +1,12 @@
+"""
+Test suite for clinical_extraction
+
+Purpose:
+Defines automated unit and integration tests to verify code coverage and correctness.
+
+Module/Component: Test Suites
+"""
+
 import unittest
 from app.services.clinical.models import ClinicalExtractionResult
 from app.services.clinical.normalizer import ClinicalNormalizer

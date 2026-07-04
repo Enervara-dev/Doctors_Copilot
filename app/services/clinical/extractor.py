@@ -1,3 +1,21 @@
+"""
+Clinical Entity Extractor
+
+Purpose:
+Extracts raw clinical concepts (symptoms, drugs, history, vitals) from dialogue text segments using regex and LLM parsers.
+
+Module/Component: Clinical Extraction
+"""
+
+"""
+Clinical Entity Extractor
+
+Purpose:
+Extracts raw clinical concepts (symptoms, drugs, history, vitals) from dialogue text segments using regex and LLM parsers.
+
+Module/Component: Clinical Extraction
+"""
+
 import re
 from typing import List, Dict, Any, Optional
 from app.services.clinical.models import (

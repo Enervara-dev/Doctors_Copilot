@@ -1,3 +1,12 @@
+"""
+utterance_merger.py Component
+
+Purpose:
+Part of the App workspace layout. Handles logic, routines, or configurations in this layer.
+
+Module/Component: App
+"""
+
 from typing import Dict, List, Optional
 from threading import RLock
 from collections import deque

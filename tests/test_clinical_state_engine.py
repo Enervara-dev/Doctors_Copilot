@@ -1,3 +1,12 @@
+"""
+Test suite for clinical_state_engine
+
+Purpose:
+Defines automated unit and integration tests to verify code coverage and correctness.
+
+Module/Component: Test Suites
+"""
+
 import unittest
 from app.services.providers.models import TranscriptEvent
 from app.services.clinical import clinical_state_engine

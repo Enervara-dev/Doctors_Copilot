@@ -1,4 +1,14 @@
 from __future__ import annotations
+
+"""
+protocols.py Component
+
+Purpose:
+Part of the Clinical Intelligence workspace layout. Handles logic, routines, or configurations in this layer.
+
+Module/Component: Clinical Intelligence
+"""
+
 from abc import ABC, abstractmethod
 from typing import Any, Dict, List, Optional
 

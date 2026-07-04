@@ -1,5 +1,14 @@
 from __future__ import annotations
 
+"""
+retrieval.py Component
+
+Purpose:
+Part of the Clinical Intelligence workspace layout. Handles logic, routines, or configurations in this layer.
+
+Module/Component: Clinical Intelligence
+"""
+
 # Weights for multi-factor relevance ranking formula
 WEIGHT_SEMANTIC_SIMILARITY = 0.40
 WEIGHT_EVIDENCE_LEVEL = 0.20

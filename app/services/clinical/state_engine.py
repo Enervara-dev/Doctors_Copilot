@@ -1,3 +1,21 @@
+"""
+Clinical State Manager
+
+Purpose:
+Maintains the session-level ClinicalState, tracking active/negated symptoms and parsing changes across turns.
+
+Module/Component: Clinical Ingestion
+"""
+
+"""
+Clinical State Manager
+
+Purpose:
+Maintains the session-level ClinicalState, tracking active/negated symptoms and parsing changes across turns.
+
+Module/Component: Clinical Ingestion
+"""
+
 import re
 import json
 from typing import Dict, Optional, Any, List

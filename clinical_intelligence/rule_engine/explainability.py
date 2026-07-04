@@ -1,11 +1,29 @@
+from __future__ import annotations
+
+"""
+Audit Explainability Tracer
+
+Purpose:
+Generates a complete step-by-step history of rule matches, scores, and updates during reasoning passes.
+
+Module/Component: Rule Engine Core
+"""
+
+"""
+Audit Explainability Tracer
+
+Purpose:
+Generates a complete step-by-step history of rule matches, scores, and updates during reasoning passes.
+
+Module/Component: Rule Engine Core
+"""
+
 """
 Explainability — Reasoning trace builder.
 
 Maintains a mutable list of ReasoningStep objects during a single reasoning
 pass and assembles the final ExplainabilityMetadata at the end.
 """
-
-from __future__ import annotations
 
 import time
 import uuid

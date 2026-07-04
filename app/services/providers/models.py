@@ -1,3 +1,12 @@
+"""
+models.py Component
+
+Purpose:
+Part of the App workspace layout. Handles logic, routines, or configurations in this layer.
+
+Module/Component: App
+"""
+
 from pydantic import BaseModel
 from typing import Optional
 
@@ -28,5 +37,3 @@ class TranscriptEvent(BaseModel):
     updated_at: Optional[float] = None
     speaker_confidence: Optional[float] = None
     speaker_method: Optional[str] = None
-
-

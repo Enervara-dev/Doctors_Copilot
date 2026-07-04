@@ -1,4 +1,23 @@
 from __future__ import annotations
+
+"""
+Knowledge Graph Schema Builder
+
+Purpose:
+Builds Neo4j schema definitions and imports database node types.
+
+Module/Component: Knowledge Graph
+"""
+
+"""
+Knowledge Graph Schema Builder
+
+Purpose:
+Builds Neo4j schema definitions and imports database node types.
+
+Module/Component: Knowledge Graph
+"""
+
 import logging
 from typing import Any, Dict, List, Set, Tuple
 from clinical_intelligence.rule_engine.loader import RuleSet

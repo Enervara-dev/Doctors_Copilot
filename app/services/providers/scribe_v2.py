@@ -1,3 +1,12 @@
+"""
+scribe_v2.py Component
+
+Purpose:
+Part of the App workspace layout. Handles logic, routines, or configurations in this layer.
+
+Module/Component: App
+"""
+
 import json
 import base64
 import asyncio

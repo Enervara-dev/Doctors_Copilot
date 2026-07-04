@@ -1,3 +1,12 @@
+"""
+Test suite for clinical_optimization
+
+Purpose:
+Defines automated unit and integration tests to verify code coverage and correctness.
+
+Module/Component: Test Suites
+"""
+
 import unittest
 from app.services.clinical.dictionary.loader import dictionary_manager
 from app.services.clinical.extractors.negation import NegationDetector

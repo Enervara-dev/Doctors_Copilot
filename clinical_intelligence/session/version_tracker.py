@@ -1,4 +1,14 @@
 from __future__ import annotations
+
+"""
+version_tracker.py Component
+
+Purpose:
+Part of the Clinical Intelligence workspace layout. Handles logic, routines, or configurations in this layer.
+
+Module/Component: Clinical Intelligence
+"""
+
 import hashlib
 import json
 import logging

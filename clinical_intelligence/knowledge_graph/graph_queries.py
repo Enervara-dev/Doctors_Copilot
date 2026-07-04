@@ -1,4 +1,23 @@
 from __future__ import annotations
+
+"""
+Graph Traversal Engine
+
+Purpose:
+Executes Cypher database traversals to retrieve guideline matches and connected comorbidities.
+
+Module/Component: Knowledge Graph
+"""
+
+"""
+Graph Traversal Engine
+
+Purpose:
+Executes Cypher database traversals to retrieve guideline matches and connected comorbidities.
+
+Module/Component: Knowledge Graph
+"""
+
 import time
 import logging
 from typing import Any, Dict, List, Optional, Set

@@ -1,3 +1,21 @@
+"""
+Terminology Mapping Normalizer
+
+Purpose:
+Translates raw, colloquial concepts into standard medical dictionary terms using partial matching and alias maps.
+
+Module/Component: Clinical Extraction
+"""
+
+"""
+Terminology Mapping Normalizer
+
+Purpose:
+Translates raw, colloquial concepts into standard medical dictionary terms using partial matching and alias maps.
+
+Module/Component: Clinical Extraction
+"""
+
 import re
 from app.services.clinical.dictionary.loader import dictionary_manager
 

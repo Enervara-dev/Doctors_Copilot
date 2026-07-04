@@ -1,3 +1,21 @@
+"""
+WebSocket Real-time Audio Ingress
+
+Purpose:
+Manages streaming WebSocket connections, routing incoming binary PCM frames to buffers and handling participant disconnect/reconnect states.
+
+Module/Component: API Ingress
+"""
+
+"""
+WebSocket Real-time Audio Ingress
+
+Purpose:
+Manages streaming WebSocket connections, routing incoming binary PCM frames to buffers and handling participant disconnect/reconnect states.
+
+Module/Component: API Ingress
+"""
+
 import json
 import base64
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect, Query, status
@@ -153,4 +171,3 @@ async def audio_streaming_endpoint(
             )
             
         await session_manager.unregister_stream(session_id, role)
-

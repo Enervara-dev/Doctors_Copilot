@@ -1,4 +1,14 @@
 from __future__ import annotations
+
+"""
+Test suite for knowledge_graph
+
+Purpose:
+Defines automated unit and integration tests to verify code coverage and correctness.
+
+Module/Component: Test Suites
+"""
+
 import unittest
 from unittest.mock import MagicMock, patch
 import time

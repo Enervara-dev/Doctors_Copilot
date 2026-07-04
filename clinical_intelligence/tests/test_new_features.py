@@ -1,4 +1,14 @@
 from __future__ import annotations
+
+"""
+Test suite for new_features
+
+Purpose:
+Defines automated unit and integration tests to verify code coverage and correctness.
+
+Module/Component: Test Suites
+"""
+
 import unittest
 from typing import Any, Dict, Set, List
 from pathlib import Path

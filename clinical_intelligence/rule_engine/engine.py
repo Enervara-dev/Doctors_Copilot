@@ -1,3 +1,23 @@
+from __future__ import annotations
+
+"""
+Deterministic Reasoning Engine Orchestrator
+
+Purpose:
+Executes zero-LLM reasoning passes over patient state, running symptoms, risk factors, and vitals against rulesets.
+
+Module/Component: Rule Engine Core
+"""
+
+"""
+Deterministic Reasoning Engine Orchestrator
+
+Purpose:
+Executes zero-LLM reasoning passes over patient state, running symptoms, risk factors, and vitals against rulesets.
+
+Module/Component: Rule Engine Core
+"""
+
 """
 Clinical Reasoning Engine — Orchestrator.
 
@@ -13,8 +33,6 @@ Usage::
     result = engine.reason(clinical_state)   # ClinicalState from Milestone 1
     print(result.model_dump_json(indent=2))
 """
-
-from __future__ import annotations
 
 import logging
 import time

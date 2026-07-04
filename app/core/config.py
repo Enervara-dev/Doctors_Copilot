@@ -1,3 +1,21 @@
+"""
+System Configuration Parameters
+
+Purpose:
+Defines global settings including chunk sizes, audio sample rates, WebSocket limits, environment configurations, and external API keys.
+
+Module/Component: API Core
+"""
+
+"""
+System Configuration Parameters
+
+Purpose:
+Defines global settings including chunk sizes, audio sample rates, WebSocket limits, environment configurations, and external API keys.
+
+Module/Component: API Core
+"""
+
 # =====================================================================
 # CONFIGURATION SETTINGS (app/core/config.py)
 # =====================================================================

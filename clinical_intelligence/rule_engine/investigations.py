@@ -1,11 +1,29 @@
+from __future__ import annotations
+
+"""
+Diagnostic Investigation Recommender
+
+Purpose:
+Suggests lab tests, radiology, or ECG studies from disease rulesets and elevates priorities for red-flag cases.
+
+Module/Component: Rule Engine Core
+"""
+
+"""
+Diagnostic Investigation Recommender
+
+Purpose:
+Suggests lab tests, radiology, or ECG studies from disease rulesets and elevates priorities for red-flag cases.
+
+Module/Component: Rule Engine Core
+"""
+
 """
 Investigation Recommender.
 
 Recommends investigations based on candidate diagnoses and active red flags.
 Deduplicates across diseases, escalates priority when red flags are present.
 """
-
-from __future__ import annotations
 
 import logging
 from typing import Any, Dict, List, Set

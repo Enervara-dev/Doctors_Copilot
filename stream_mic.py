@@ -1,3 +1,12 @@
+"""
+stream_mic.py Component
+
+Purpose:
+Part of the Stream Mic.Py workspace layout. Handles logic, routines, or configurations in this layer.
+
+Module/Component: Stream Mic.Py
+"""
+
 import asyncio
 import websockets
 import sys
@@ -195,4 +204,3 @@ if __name__ == "__main__":
             print(f"Error fetching clinical state: {e}", file=sys.stderr)
             
         fetch_clinical_reasoning()
-

@@ -1,3 +1,23 @@
+from __future__ import annotations
+
+"""
+Patient Risk Factor Evaluator
+
+Purpose:
+Scans medical history, drugs, and allergies to match defined patient clinical risk factors.
+
+Module/Component: Rule Engine Core
+"""
+
+"""
+Patient Risk Factor Evaluator
+
+Purpose:
+Scans medical history, drugs, and allergies to match defined patient clinical risk factors.
+
+Module/Component: Rule Engine Core
+"""
+
 """
 Risk Factor Evaluator.
 
@@ -5,8 +25,6 @@ Scans the patient's clinical state (medical history, current medications,
 allergies, social history) against the risk_factors.yaml rules to identify
 active risk factors and their confidence modifier values.
 """
-
-from __future__ import annotations
 
 import logging
 from typing import Any, Dict, List, Optional, Set, Tuple

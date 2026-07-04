@@ -1,3 +1,12 @@
+"""
+logging.py Component
+
+Purpose:
+Part of the App workspace layout. Handles logic, routines, or configurations in this layer.
+
+Module/Component: App
+"""
+
 import logging
 import json
 import time

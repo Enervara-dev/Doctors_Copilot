@@ -1,3 +1,21 @@
+"""
+Multi-Role WebSocket Simulation Client
+
+Purpose:
+Simulates concurrent doctor/patient streaming audio roles, uploading PCM frames via WebSockets to verify real-time pipeline ingestion.
+
+Module/Component: Developer Utilities
+"""
+
+"""
+Multi-Role WebSocket Simulation Client
+
+Purpose:
+Simulates concurrent doctor/patient streaming audio roles, uploading PCM frames via WebSockets to verify real-time pipeline ingestion.
+
+Module/Component: Developer Utilities
+"""
+
 import asyncio
 import websockets
 import json

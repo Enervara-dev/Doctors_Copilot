@@ -1,3 +1,21 @@
+"""
+Dialogue-to-Clinical Ingestion Pipeline
+
+Purpose:
+Coordinates normalisation, concept extraction, negation classification, and state updates from new transcript text.
+
+Module/Component: Clinical Ingestion
+"""
+
+"""
+Dialogue-to-Clinical Ingestion Pipeline
+
+Purpose:
+Coordinates normalisation, concept extraction, negation classification, and state updates from new transcript text.
+
+Module/Component: Clinical Ingestion
+"""
+
 from typing import Dict, Any
 from app.services.clinical.normalizer import ClinicalNormalizer
 from app.services.clinical.extractor import ClinicalEntityExtractor

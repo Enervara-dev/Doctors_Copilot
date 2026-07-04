@@ -1,11 +1,29 @@
+from __future__ import annotations
+
+"""
+Missing Info & Symptom Explorer
+
+Purpose:
+Identifies unexplored cardinal clinical findings for candidates to compose diagnostic target questions.
+
+Module/Component: Rule Engine Core
+"""
+
+"""
+Missing Info & Symptom Explorer
+
+Purpose:
+Identifies unexplored cardinal clinical findings for candidates to compose diagnostic target questions.
+
+Module/Component: Rule Engine Core
+"""
+
 """
 Missing Information Detector.
 
 Analyses the current ClinicalState to identify important clinical details
 that have not yet been collected and generates prioritised follow-up questions.
 """
-
-from __future__ import annotations
 
 import logging
 from typing import Any, Dict, List, Optional

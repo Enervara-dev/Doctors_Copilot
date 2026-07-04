@@ -1,3 +1,21 @@
+"""
+Speaker Timeline Track Manager
+
+Purpose:
+Maintains a sequential history of speech segments per speaker, resolving overlaps and tracking active talk times.
+
+Module/Component: Diarization & Alignment
+"""
+
+"""
+Speaker Timeline Track Manager
+
+Purpose:
+Maintains a sequential history of speech segments per speaker, resolving overlaps and tracking active talk times.
+
+Module/Component: Diarization & Alignment
+"""
+
 # =====================================================================
 # SPEAKER TIMELINE TRACKER (app/services/speaker_timeline.py)
 # =====================================================================
