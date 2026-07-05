@@ -71,6 +71,13 @@ async def startup_event():
         from app.services.diarization_worker import diarization_worker_manager
         await diarization_worker_manager.preload_pipeline()
 
+    # Preload and warm Speaker Verification backend if enabled
+    from app.services.speaker_verification.config import ENABLE_SPEAKER_VERIFICATION
+    if ENABLE_SPEAKER_VERIFICATION:
+        from app.services.speaker_verification.speaker_verification import speaker_verification_service
+        speaker_verification_service.load_backend()
+
+
 # Shutdown logging
 @app.on_event("shutdown")
 async def shutdown_event():

@@ -1,0 +1,140 @@
+{
+  "session_id": "debug-session",
+  "timestamp": 1783238792.5027752,
+  "pyannote_segments": [
+    {
+      "start": 0.0,
+      "end": 2.0,
+      "label": "Speaker_0"
+    },
+    {
+      "start": 2.0,
+      "end": 4.0,
+      "label": "Speaker_1"
+    }
+  ],
+  "words": [
+    {
+      "text": "I",
+      "start": 2.1,
+      "end": 2.4,
+      "type": "word"
+    },
+    {
+      "text": "will",
+      "start": 2.4,
+      "end": 2.6,
+      "type": "word"
+    },
+    {
+      "text": "examine",
+      "start": 2.6,
+      "end": 3.0,
+      "type": "word"
+    },
+    {
+      "text": "your",
+      "start": 3.0,
+      "end": 3.3,
+      "type": "word"
+    },
+    {
+      "text": "throat.",
+      "start": 3.3,
+      "end": 3.8,
+      "type": "word"
+    }
+  ],
+  "word_speaker_mapping": [
+    {
+      "word": "I",
+      "start": 2.1,
+      "end": 2.4,
+      "raw_speaker": "Speaker_1",
+      "mapped_speaker": "doctor",
+      "reason": "Maximum overlap",
+      "overlaps": {
+        "Speaker_1": 0.2999999999999998
+      },
+      "proximity_scores": {},
+      "continuity_details": {
+        "latest_end_before_start": null,
+        "tied_speakers": null
+      }
+    },
+    {
+      "word": "will",
+      "start": 2.4,
+      "end": 2.6,
+      "raw_speaker": "Speaker_1",
+      "mapped_speaker": "doctor",
+      "reason": "Maximum overlap",
+      "overlaps": {
+        "Speaker_1": 0.20000000000000018
+      },
+      "proximity_scores": {},
+      "continuity_details": {
+        "latest_end_before_start": null,
+        "tied_speakers": null
+      }
+    },
+    {
+      "word": "examine",
+      "start": 2.6,
+      "end": 3.0,
+      "raw_speaker": "Speaker_1",
+      "mapped_speaker": "doctor",
+      "reason": "Maximum overlap",
+      "overlaps": {
+        "Speaker_1": 0.3999999999999999
+      },
+      "proximity_scores": {},
+      "continuity_details": {
+        "latest_end_before_start": null,
+        "tied_speakers": null
+      }
+    },
+    {
+      "word": "your",
+      "start": 3.0,
+      "end": 3.3,
+      "raw_speaker": "Speaker_1",
+      "mapped_speaker": "doctor",
+      "reason": "Maximum overlap",
+      "overlaps": {
+        "Speaker_1": 0.2999999999999998
+      },
+      "proximity_scores": {},
+      "continuity_details": {
+        "latest_end_before_start": null,
+        "tied_speakers": null
+      }
+    },
+    {
+      "word": "throat.",
+      "start": 3.3,
+      "end": 3.8,
+      "raw_speaker": "Speaker_1",
+      "mapped_speaker": "doctor",
+      "reason": "Maximum overlap",
+      "overlaps": {
+        "Speaker_1": 0.5
+      },
+      "proximity_scores": {},
+      "continuity_details": {
+        "latest_end_before_start": null,
+        "tied_speakers": null
+      }
+    }
+  ],
+  "final_events": [
+    {
+      "event_id": "cca83263-0d70-4ff9-ba18-c8dc6d4efacf",
+      "sequence_number": 0,
+      "speaker_id": "doctor",
+      "transcript": "Iwillexamineyourthroat.",
+      "start_time": 2.1,
+      "end_time": 3.8
+    }
+  ]
+}

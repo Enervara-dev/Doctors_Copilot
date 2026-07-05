@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 """
 store.py Component
 
@@ -9,13 +7,15 @@ Part of the Clinical Intelligence workspace layout. Handles logic, routines, or 
 Module/Component: Clinical Intelligence
 """
 
+from __future__ import annotations
+
 import os
 import yaml
 import math
 import hashlib
 import time
 import logging
-from typing import Any, Dict, List, Set, Tuple
+from typing import Any, Dict, List, Set, Tuple, Optional
 import numpy as np
 
 from clinical_intelligence.config.rag import GUIDELINES_YAML_PATH, DEFAULT_EMBEDDING_MODEL

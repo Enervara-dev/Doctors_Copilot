@@ -167,3 +167,7 @@ pyannote-pipeline>=3.0.1,<4.0
 pyannote-database>=5.0,<6.0
 soundfile>=0.12.0
 
+# Speaker Verification & Identity Persistence (SpeechBrain ECAPA-TDNN)
+speechbrain==1.1.0
+HyperPyYAML==1.2.3
+

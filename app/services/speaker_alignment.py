@@ -146,8 +146,10 @@ class SpeakerAlignmentService:
             return [event]
 
         # 2. Committed/Final transcripts: Segment by sentence and align to speaker timeline
-        sentences_data = []  # List of tuples: (sentence_text, start_time, end_time, speaker, confidence, method)
-        mapping = self._session_mappings.get(session_id, self.SPEAKER_ROLE_MAPPING)
+        sentences_data = []  # List of tuples: (sentence_text, start_time, end_time, speaker, confidence, method, spk_raw)
+        if session_id not in self._session_mappings:
+            self._session_mappings[session_id] = self.SPEAKER_ROLE_MAPPING.copy()
+        mapping = self._session_mappings[session_id]
         
         if words:
             # Group words into sentences based on punctuation (. ? !)
@@ -179,7 +181,7 @@ class SpeakerAlignmentService:
                             speaker_conf = semantic_conf
                             speaker_method = semantic_method
                             
-                        sentences_data.append((s_text, s_start, s_end, speaker, speaker_conf, speaker_method))
+                        sentences_data.append((s_text, s_start, s_end, speaker, speaker_conf, speaker_method, spk_raw))
                     current_sent_words = []
             if current_sent_words:
                 s_text = "".join(x.get("text", "") for x in current_sent_words).strip()
@@ -204,7 +206,7 @@ class SpeakerAlignmentService:
                         speaker_conf = semantic_conf
                         speaker_method = semantic_method
                         
-                    sentences_data.append((s_text, s_start, s_end, speaker, speaker_conf, speaker_method))
+                    sentences_data.append((s_text, s_start, s_end, speaker, speaker_conf, speaker_method, spk_raw))
         else:
             # Fallback when words is empty/not present: split by regex and estimate time range
             sentence_texts = [s.strip() for s in re.split(r'(?<=[.!?])\s+', text) if s.strip()]
@@ -251,7 +253,7 @@ class SpeakerAlignmentService:
                         speaker_conf = semantic_conf
                         speaker_method = semantic_method
                         
-                    sentences_data.append((s_text, curr_start, s_end, speaker, speaker_conf, speaker_method))
+                    sentences_data.append((s_text, curr_start, s_end, speaker, speaker_conf, speaker_method, spk_raw))
                     curr_start = s_end
 
         # Debug logger to inspect sentence alignments and timeline segments
@@ -274,8 +276,9 @@ class SpeakerAlignmentService:
             curr_end = sentences_data[0][2]
             curr_conf = sentences_data[0][4]
             curr_method = sentences_data[0][5]
+            curr_spk_raw = sentences_data[0][6]
             
-            for s_text, s_start, s_end, speaker, conf, method in sentences_data[1:]:
+            for s_text, s_start, s_end, speaker, conf, method, spk_raw in sentences_data[1:]:
                 if speaker == curr_speaker:
                     curr_texts.append(s_text)
                     curr_end = s_end
@@ -283,18 +286,19 @@ class SpeakerAlignmentService:
                         curr_conf = conf
                         curr_method = method
                 else:
-                    groups.append((curr_speaker, curr_texts, curr_start, curr_end, curr_conf, curr_method))
+                    groups.append((curr_speaker, curr_texts, curr_start, curr_end, curr_conf, curr_method, curr_spk_raw))
                     curr_speaker = speaker
                     curr_texts = [s_text]
                     curr_start = s_start
                     curr_end = s_end
                     curr_conf = conf
                     curr_method = method
-            groups.append((curr_speaker, curr_texts, curr_start, curr_end, curr_conf, curr_method))
+                    curr_spk_raw = spk_raw
+            groups.append((curr_speaker, curr_texts, curr_start, curr_end, curr_conf, curr_method, curr_spk_raw))
 
         # Create a TranscriptEvent for each grouped segment
         events = []
-        for speaker, g_texts, g_start, g_end, g_conf, g_method in groups:
+        for speaker, g_texts, g_start, g_end, g_conf, g_method, g_spk_raw in groups:
             group_text = " ".join(g_texts).strip()
             group_text = re.sub(r'\s+', ' ', group_text)
             if not group_text:
@@ -322,6 +326,18 @@ class SpeakerAlignmentService:
                 speaker_method=g_method
             )
             events.append(event)
+            
+            # Queue background speaker verification task
+            if not is_partial and not getattr(self, "_in_realignment", False):
+                from app.services.speaker_verification.speaker_verification import speaker_verification_service
+                speaker_verification_service.enqueue_verification_task(
+                    session_id=session_id,
+                    start_time=g_start,
+                    end_time=g_end,
+                    proposed_role=speaker,
+                    raw_speaker=g_spk_raw
+                )
+
             
         # If DIARIZATION_DEBUG is enabled, perform diagnostics
         if getattr(settings, "DIARIZATION_DEBUG", False):
@@ -568,14 +584,22 @@ class SpeakerAlignmentService:
                 "SpeakerAlignmentService: Swapping Speaker_0 and Speaker_1 roles semantically for session",
                 extra={"session_id": session_id}
             )
-            self._session_mappings[session_id] = {
+            mapping = {
                 "Speaker_0": "patient",
                 "Speaker_1": "doctor",
                 "Speaker_2": "attender",
                 "UNKNOWN": "UNKNOWN"
             }
         else:
-            self._session_mappings[session_id] = self.SPEAKER_ROLE_MAPPING
+            mapping = self.SPEAKER_ROLE_MAPPING.copy()
+
+        # Merge in verified speaker locks
+        from app.services.speaker_verification.speaker_verification import speaker_verification_service
+        locked_verifications = speaker_verification_service._locked_mappings.get(session_id, {})
+        for raw, role in locked_verifications.items():
+            mapping[raw] = role
+
+        self._session_mappings[session_id] = mapping
             
         logger.info(
             "SpeakerAlignmentService: Starting global re-alignment for session",
@@ -645,6 +669,9 @@ class SpeakerAlignmentService:
         """Clears cached data and dynamic role mappings for the given session to prevent memory leaks."""
         self._session_mappings.pop(session_id, None)
         self._committed_cache.pop(session_id, None)
+        from app.services.speaker_verification.speaker_verification import speaker_verification_service
+        speaker_verification_service.clear_session(session_id)
+
 
 # Singleton Instance
 speaker_alignment_service = SpeakerAlignmentService()

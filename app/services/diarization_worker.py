@@ -293,6 +293,51 @@ class DiarizationWorkerManager:
                     extra={"session_id": session_id},
                 )
 
+    def get_session_audio_slice(self, session_id: str, start_time: float, end_time: float) -> Optional["AudioSegment"]:
+        """
+        Extracts exact PCM samples for a session between start_time and end_time,
+        returning an AudioSegment instance.
+        """
+        from app.services.speaker_verification.models import AudioSegment
+        
+        with self._lock:
+            state = self._states.get(session_id)
+            
+        if not state:
+            return None
+            
+        # 16kHz mono PCM 16-bit has 2 bytes per sample
+        sample_rate = 16000
+        bytes_per_sample = 2
+        bytes_per_second = sample_rate * bytes_per_sample
+        
+        start_byte = int(start_time * bytes_per_second)
+        end_byte = int(end_time * bytes_per_second)
+        
+        # Align to 2-byte sample boundaries
+        start_byte = (start_byte // bytes_per_sample) * bytes_per_sample
+        end_byte = (end_byte // bytes_per_sample) * bytes_per_sample
+        
+        audio_bytes = b"".join(state.chunks_deque)
+        
+        if start_byte >= len(audio_bytes):
+            return None
+            
+        sliced_bytes = audio_bytes[start_byte:end_byte]
+        if not sliced_bytes:
+            return None
+            
+        # Convert bytes to normalized float32 samples in [-1.0, 1.0]
+        samples = np.frombuffer(sliced_bytes, dtype=np.int16).astype(np.float32) / 32768.0
+        
+        return AudioSegment(
+            samples=samples,
+            sample_rate=sample_rate,
+            start_time=start_time,
+            end_time=end_time
+        )
+
+
     # ------------------------------------------------------------------
     # Background loop
     # ------------------------------------------------------------------

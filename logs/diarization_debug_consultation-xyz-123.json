@@ -1,6 +1,6 @@
 {
   "session_id": "consultation-xyz-123",
-  "timestamp": 1783152892.3175757,
+  "timestamp": 1783239570.6966546,
   "pyannote_segments": [
     {
       "start": 0.35159375000000004,
@@ -107,40 +107,48 @@
   "word_speaker_mapping": [],
   "final_events": [
     {
-      "event_id": "dd332318-c690-4df1-a030-fe31687e448e",
+      "event_id": "8e76d5e6-10be-47ca-8bd4-e296299ea167",
       "sequence_number": 15,
-      "speaker_id": "patient",
-      "transcript": "prescribe you some antibiotics and syrup for the cough. How long will it take to feel better?",
+      "speaker_id": "doctor",
+      "transcript": "prescribe you some antibiotics and syrup for the cough.",
       "start_time": 38.233333333333334,
+      "end_time": 41.9
+    },
+    {
+      "event_id": "6c8fd8e8-45b8-460c-a5a7-bdc63097f653",
+      "sequence_number": 16,
+      "speaker_id": "patient",
+      "transcript": "How long will it take to feel better?",
+      "start_time": 41.9,
       "end_time": 44.36666666666667
     },
     {
-      "event_id": "178a7534-11eb-48f8-a8bb-f542ae0fabfa",
-      "sequence_number": 16,
+      "event_id": "99bf5e83-7f04-4813-b270-e1309b95cce1",
+      "sequence_number": 17,
       "speaker_id": "doctor",
       "transcript": "Usually within three to four days if you rest and take the medicine on time.",
       "start_time": 44.36666666666667,
       "end_time": 49.43333333333333
     },
     {
-      "event_id": "9e8ff5a3-2f4e-4a1d-9d3f-07dd2a6cae7b",
-      "sequence_number": 17,
+      "event_id": "ac63e52b-8646-46bc-8a05-ba9f83d78f2a",
+      "sequence_number": 18,
       "speaker_id": "patient",
       "transcript": "All right. I'll do that. Thank you, Doctor.",
       "start_time": 49.43333333333333,
       "end_time": 52.166666666666664
     },
     {
-      "event_id": "b63cfdb9-dfa2-474a-aaab-cd6acfb0fff7",
-      "sequence_number": 18,
+      "event_id": "2e05a2d5-0409-43d7-b3b8-7f008023d52f",
+      "sequence_number": 19,
       "speaker_id": "doctor",
       "transcript": "Take care. Drink plenty of water and get enough sleep. Come back if the fever doesn't go down.",
       "start_time": 52.166666666666664,
       "end_time": 58.3
     },
     {
-      "event_id": "db2096b9-cae0-4a42-b9da-ecf80d22fb2e",
-      "sequence_number": 19,
+      "event_id": "5b234700-d894-41c2-bd9f-6870d61fd3cb",
+      "sequence_number": 20,
       "speaker_id": "patient",
       "transcript": "I will. Thanks again.",
       "start_time": 58.3,
