@@ -288,7 +288,7 @@ def create_report(filename):
     ))
     story.append(Paragraph(
         "• <b>WebSocket Streaming to STT Provider:</b> The spawned worker task reads the 1.0s chunks from the queue and streams them "
-        "over a persistent WebSocket connection to a high-accuracy speech-to-text service (such as ElevenLabs Scribe V2 or Whisper).",
+        "over a persistent WebSocket connection to a high-accuracy speech-to-text service (specifically ElevenLabs Scribe V2).",
         styles['Bullet_Custom']
     ))
     story.append(Paragraph(

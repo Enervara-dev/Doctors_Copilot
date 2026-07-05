@@ -231,7 +231,7 @@ def create_report(filename):
     ))
     
     story.append(Paragraph(
-        "• <b>Step 2: Transcription & STT Pipeline:</b> Integrated ElevenLabs Scribe V2 (WebSocket API) and a fallback Whisper provider. "
+        "• <b>Step 2: Transcription & STT Pipeline:</b> Integrated ElevenLabs Scribe V2 (WebSocket API) as the sole Speech-to-Text provider. "
         "Developed a stateless, self-healing `STTManager` running a 100ms background reconciliation loop to dynamically spawn and clean up "
         "workers matching the active streams. Implemented a robust 120-second timeout guard inside `stt_worker_task` that automatically "
         "reconnects hung sockets without losing buffered audio, and created a `/v1/transcripts/{session_id}` retrieval endpoint.",

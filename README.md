@@ -11,7 +11,7 @@ The **Clinical Consultation Copilot** acts as an ambient assistant during doctor
 ### What the System Can Do:
 *   **Multi-Role Audio Streaming:** Ingests live PCM audio from three separate client microphones (Doctor, Patient, Attender) simultaneously with sub-100ms latency.
 *   **Speaker Diarization & Alignment:** Uses PyAnnote to segment speakers and matches the spoken transcripts with their roles, forming a structured conversational timeline.
-*   **Speech-to-Text Processing:** Integrates with ElevenLabs Scribe V2 and OpenAI Whisper to transcribe audio segments on-the-fly.
+*   **Speech-to-Text Processing:** Integrates with ElevenLabs Scribe V2 to transcribe audio segments on-the-fly.
 *   **Clinical Entity Extraction:** Normalizes colloquial layman terminology and extracts key medical entities (Symptoms, Medications, Tentative Diagnoses, Procedures, Risk Factors, and Family History).
 *   **Safety-First Clinical Reasoning:** Runs a fully deterministic, explainable, and LLM-free reasoning engine to:
     *   *Score Candidate Diagnoses:* Ranks potential conditions based on clinical rule weights, vitals, age, gender, and negation penalties.
@@ -55,7 +55,7 @@ The diagram below outlines the full flow of information from physical microphone
           v
 +--------------------+
 | Speech-to-Text /   | [app/services/stt_worker.py]
-| Diarization Worker | - ElevenLabs Scribe V2 / Whisper transcription
+| Diarization Worker | - ElevenLabs Scribe V2 transcription
 +---------+----------+ - PyAnnote diarization speaker alignment
           |
           | Aligned Conversation Utterances (Role + Transcript)
@@ -97,9 +97,8 @@ The diagram below outlines the full flow of information from physical microphone
 *   `token` (string, Required): Handshake authentication token.
 
 ### Step 2: Speech-to-Text (STT) Layer
-Transcribes PCM chunks using pluggable providers:
-*   **ElevenLabs Scribe V2:** Recommended provider for low-latency streaming transcription.
-*   **OpenAI Whisper:** Alternative provider for local or batch execution.
+Transcribes PCM chunks:
+*   **ElevenLabs Scribe V2:** High-accuracy, low-latency streaming Speech-to-Text.
 
 ### Step 3: Diarization & Speaker Alignment Layer
 *   Uses **PyAnnote speaker-diarization-3.1** to segment audio.

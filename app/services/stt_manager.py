@@ -2,16 +2,7 @@
 Speech-to-Text Router
 
 Purpose:
-Dynamically instantiates and routes audio transcript requests to active providers like OpenAI Whisper or ElevenLabs Scribe.
-
-Module/Component: Transcription Services
-"""
-
-"""
-Speech-to-Text Router
-
-Purpose:
-Dynamically instantiates and routes audio transcript requests to active providers like OpenAI Whisper or ElevenLabs Scribe.
+Dynamically instantiates and routes audio transcript requests to the ElevenLabs Scribe V2 service.
 
 Module/Component: Transcription Services
 """

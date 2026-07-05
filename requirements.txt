@@ -74,7 +74,7 @@
 #       .\.venv\Scripts\python.exe stream_mic.py doctor
 #
 #    Option B: Stream a Pre-recorded WAV File:
-#       .\.venv\Scripts\python.exe stream_audio.py CAR0001.wav doctor
+#       .\.venv\Scripts\python.exe stream_audio.py Doctor.wav  doctor
 #
 #    Roles available: doctor | patient | attender
 #
