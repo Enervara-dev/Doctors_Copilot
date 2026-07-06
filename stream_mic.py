@@ -135,11 +135,11 @@ def fetch_clinical_reasoning():
                     print(f" * {disease}: {explanation}")
                 
             # Red Flags
-            red_flags = res.get("red_flag_alerts", [])
+            red_flags = res.get("red_flags", []) or res.get("red_flag_alerts", [])
             if red_flags:
                 print("\n[!] WARNING - Red Flag Alerts:")
                 for rf in red_flags:
-                    print(f"  * {rf.get('red_flag_id')} [{rf.get('severity').upper()}]: {rf.get('action')}")
+                    print(f"  * {rf.get('flag_id') or rf.get('red_flag_id')} [{rf.get('severity').upper()}]: {rf.get('recommended_action') or rf.get('action')}")
             
             # Safety Checks (Contraindications & Drug Interactions)
             contraindications = res.get("contraindications", [])
@@ -152,7 +152,7 @@ def fetch_clinical_reasoning():
                     print(f"  * Drug-Drug Interaction ({i.get('severity')}): {i.get('drug_a')} + {i.get('drug_b')} - {i.get('clinical_effect')} (Recommendation: {i.get('recommendation')})")
             
             # Recommended Investigations
-            invs = res.get("investigation_recommendations", [])
+            invs = res.get("recommended_investigations", []) or res.get("investigation_recommendations", [])
             if invs:
                 print("\nRecommended Investigations:")
                 for inv in invs:

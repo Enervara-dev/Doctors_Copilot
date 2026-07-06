@@ -1,0 +1,23 @@
+{
+  "session_id": "consultation-xyz-eff0df",
+  "timestamp": 1783350021.949906,
+  "pyannote_segments": [
+    {
+      "start": 1.4653437500000002,
+      "end": 3.42284375,
+      "label": "Speaker_0"
+    }
+  ],
+  "words": [],
+  "word_speaker_mapping": [],
+  "final_events": [
+    {
+      "event_id": "e659665f-5f20-4176-b02b-8133a484c3b4",
+      "sequence_number": 2,
+      "speaker_id": "doctor",
+      "transcript": "Good morning. How are you feeling today?",
+      "start_time": 1.7833333333333337,
+      "end_time": 4.383333333333334
+    }
+  ]
+}

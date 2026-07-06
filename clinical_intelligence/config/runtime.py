@@ -10,15 +10,17 @@ Module/Component: Clinical Intelligence
 """
 
 from typing import List
+import os
 
 # Feature flags toggling subsystems execution
-ENABLE_RAG = True
-ENABLE_GRAPH = True
-ENABLE_LLM = True
-ENABLE_SOAP = True
-ENABLE_PATIENT_EXPLANATION = True
-ENABLE_ADAPTIVE_QUESTIONS = True
-ENABLE_EMERGENCY_WORKFLOW = True
+ENABLE_RAG = os.getenv("CLINICAL_COPILOT_ENABLE_RAG", "True").lower() in ("true", "1", "yes")
+ENABLE_GRAPH = os.getenv("CLINICAL_COPILOT_ENABLE_GRAPH", "True").lower() in ("true", "1", "yes")
+ENABLE_LLM = os.getenv("CLINICAL_COPILOT_ENABLE_LLM", "True").lower() in ("true", "1", "yes")
+ENABLE_SOAP = os.getenv("CLINICAL_COPILOT_ENABLE_SOAP", "True").lower() in ("true", "1", "yes")
+ENABLE_PATIENT_EXPLANATION = os.getenv("CLINICAL_COPILOT_ENABLE_PATIENT_EXPLANATION", "True").lower() in ("true", "1", "yes")
+ENABLE_ADAPTIVE_QUESTIONS = os.getenv("CLINICAL_COPILOT_ENABLE_ADAPTIVE_QUESTIONS", "True").lower() in ("true", "1", "yes")
+ENABLE_EMERGENCY_WORKFLOW = os.getenv("CLINICAL_COPILOT_ENABLE_EMERGENCY_WORKFLOW", "True").lower() in ("true", "1", "yes")
+ENABLE_RED_FLAG_ALERTS = os.getenv("CLINICAL_COPILOT_ENABLE_RED_FLAG_ALERTS", "True").lower() in ("true", "1", "yes")
 
 # Execution retry limits and timeouts
 PROVIDER_TIMEOUT_SECONDS = 30.0

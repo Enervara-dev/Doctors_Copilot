@@ -1,0 +1,143 @@
+{
+  "session_id": "consultation-xyz-3b4778",
+  "timestamp": 1783340188.7093596,
+  "pyannote_segments": [
+    {
+      "start": 2.3934687500000003,
+      "end": 4.7897187500000005,
+      "label": "Speaker_0"
+    },
+    {
+      "start": 5.4478437500000005,
+      "end": 7.27034375,
+      "label": "Speaker_1"
+    },
+    {
+      "start": 7.64159375,
+      "end": 10.274093750000002,
+      "label": "Speaker_1"
+    },
+    {
+      "start": 10.746593750000002,
+      "end": 11.37096875,
+      "label": "Speaker_0"
+    },
+    {
+      "start": 12.029093750000001,
+      "end": 14.459093750000001,
+      "label": "Speaker_0"
+    },
+    {
+      "start": 14.965343750000002,
+      "end": 15.57284375,
+      "label": "Speaker_1"
+    },
+    {
+      "start": 15.910343750000003,
+      "end": 19.133468750000002,
+      "label": "Speaker_1"
+    },
+    {
+      "start": 20.770343750000002,
+      "end": 21.394718750000003,
+      "label": "Speaker_0"
+    },
+    {
+      "start": 22.12034375,
+      "end": 24.06096875,
+      "label": "Speaker_0"
+    },
+    {
+      "start": 25.039718750000002,
+      "end": 25.39409375,
+      "label": "Speaker_0"
+    },
+    {
+      "start": 25.664093750000003,
+      "end": 26.84534375,
+      "label": "Speaker_0"
+    },
+    {
+      "start": 27.63846875,
+      "end": 29.17409375,
+      "label": "Speaker_0"
+    },
+    {
+      "start": 29.64659375,
+      "end": 30.726593750000003,
+      "label": "Speaker_1"
+    },
+    {
+      "start": 31.28346875,
+      "end": 32.16096875,
+      "label": "Speaker_1"
+    },
+    {
+      "start": 32.26221875,
+      "end": 32.346593750000004,
+      "label": "Speaker_1"
+    },
+    {
+      "start": 32.346593750000004,
+      "end": 32.68409375,
+      "label": "Speaker_0"
+    },
+    {
+      "start": 36.987218750000004,
+      "end": 37.86471875,
+      "label": "Speaker_0"
+    }
+  ],
+  "words": [],
+  "word_speaker_mapping": [],
+  "final_events": [
+    {
+      "event_id": "16e8059b-62b0-425d-b4cd-5d5d2d8592fd",
+      "sequence_number": 35,
+      "speaker_id": "doctor",
+      "transcript": "Good morning. How are you feeling today?",
+      "start_time": 13.866666666666667,
+      "end_time": 16.46666666666667
+    },
+    {
+      "event_id": "812386dd-45ec-43c6-b7ce-d84c6d4be9ba",
+      "sequence_number": 36,
+      "speaker_id": "patient",
+      "transcript": "I'm not feeling well, Doctor. I've had a headache and fever since yesterday.",
+      "start_time": 16.46666666666667,
+      "end_time": 21.46666666666667
+    },
+    {
+      "event_id": "4a08e494-9ee1-4dff-af7a-c198fcf25478",
+      "sequence_number": 37,
+      "speaker_id": "doctor",
+      "transcript": "I see. Do you also have a sore throat or cough? Yes.",
+      "start_time": 21.46666666666667,
+      "end_time": 24.8
+    },
+    {
+      "event_id": "ae9ff26e-bd88-4697-a6cb-758438e79bbf",
+      "sequence_number": 38,
+      "speaker_id": "patient",
+      "transcript": "I've been coughing a little and my throat feels dry.",
+      "start_time": 24.8,
+      "end_time": 28.266666666666666
+    },
+    {
+      "event_id": "acf3c1b8-6f7b-41a9-8868-c04cb6a89b91",
+      "sequence_number": 39,
+      "speaker_id": "doctor",
+      "transcript": "All right. Let me check your temperature. It's slightly high. Have you taken any medicine yet?",
+      "start_time": 28.266666666666666,
+      "end_time": 34.333333333333336
+    },
+    {
+      "event_id": "a86d2f9f-c2c5-4c73-b04d-8bf6a6aa327f",
+      "sequence_number": 40,
+      "speaker_id": "patient",
+      "transcript": "Just some Tylenol, but it didn't help much.",
+      "start_time": 34.333333333333336,
+      "end_time": 37.2
+    }
+  ]
+}

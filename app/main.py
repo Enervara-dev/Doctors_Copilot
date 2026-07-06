@@ -136,7 +136,10 @@ async def get_clinical_reasoning(session_id: str):
     interactions, and recommendations) for a session.
     """
     from clinical_intelligence.integration import get_reasoning_result
+    from clinical_intelligence.presentation.serializer import serialize_reasoning_result
+    from clinical_intelligence.config.runtime import ENABLE_RED_FLAG_ALERTS
+
     result = get_reasoning_result(session_id)
     if not result:
         return {"message": "No reasoning results available yet."}
-    return result.model_dump()
+    return serialize_reasoning_result(result, show_red_flags=ENABLE_RED_FLAG_ALERTS)

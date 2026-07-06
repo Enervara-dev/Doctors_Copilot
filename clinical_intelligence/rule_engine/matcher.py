@@ -230,6 +230,9 @@ class SymptomMatcher:
             sym_name_raw: str = sym_def.get("name", "")
             weight: float = float(sym_def.get("weight", 0.0))
             canonical = _partial_match(sym_name_raw, self._alias_map, self._compiled_regexes) or _normalise(sym_name_raw, self._alias_map)
+            if canonical not in self._alias_map and sym_name_raw.lower().startswith("symptom_"):
+                stripped = sym_name_raw[8:]
+                canonical = _partial_match(stripped, self._alias_map, self._compiled_regexes) or _normalise(stripped, self._alias_map)
 
             if canonical in present:
                 conf = present_conf.get(canonical, 1.0)
@@ -261,6 +264,9 @@ class SymptomMatcher:
             sym_name_raw = sym_def.get("name", "")
             weight = float(sym_def.get("weight", 0.0))
             canonical = _partial_match(sym_name_raw, self._alias_map, self._compiled_regexes) or _normalise(sym_name_raw, self._alias_map)
+            if canonical not in self._alias_map and sym_name_raw.lower().startswith("symptom_"):
+                stripped = sym_name_raw[8:]
+                canonical = _partial_match(stripped, self._alias_map, self._compiled_regexes) or _normalise(stripped, self._alias_map)
 
             if canonical in present:
                 conf = present_conf.get(canonical, 1.0)
@@ -281,6 +287,9 @@ class SymptomMatcher:
         exclusionary_list = disease.get("exclusionary_symptoms", [])
         for ex_sym in exclusionary_list:
             ex_canonical = _partial_match(ex_sym, self._alias_map, self._compiled_regexes) or _normalise(ex_sym, self._alias_map)
+            if ex_canonical not in self._alias_map and ex_sym.lower().startswith("symptom_"):
+                stripped = ex_sym[8:]
+                ex_canonical = _partial_match(stripped, self._alias_map, self._compiled_regexes) or _normalise(stripped, self._alias_map)
             if ex_canonical in present:
                 exclusion_triggered = True
                 triggered_exclusionary.append(ex_sym)

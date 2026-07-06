@@ -110,6 +110,12 @@ class ClinicalReasoningEngine:
         self._retriever = ClinicalGuidelinesRetriever()
         self._llm_task_manager = LLMTaskManager()
 
+        # Initialize Profile Registry for Module 7 (Adaptive CDSS)
+        from pathlib import Path
+        from clinical_intelligence.evidence.profile_compiler import ProfileCompiler
+        rules_path = Path(__file__).parent.parent / "rules" / "diseases.yaml"
+        self._profile_registry = ProfileCompiler.compile_file(rules_path)
+
     def _get_graph_metadata(self) -> Optional[GraphMetadata]:
         """Fetch GraphMetadata record from the database if active and populated."""
         if not self._graph_manager.is_active:

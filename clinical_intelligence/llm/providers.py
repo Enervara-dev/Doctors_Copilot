@@ -223,21 +223,52 @@ class MockLLMProvider(BaseLLMProvider):
         
         # Simulate local database parsing latency
         time.sleep(0.001)
+
+        # Extract suspected candidates from prompt to satisfy hallucination guard
+        import re
+        candidates = []
+        if "top candidates:" in prompt_lower:
+            match = re.search(r"top candidates:\s*(.*?)(?:\n\n|\Z)", prompt_lower, re.DOTALL)
+            if match:
+                candidates = re.findall(r"-\s*([^(]+)", match.group(1))
+                candidates = [c.strip() for c in candidates]
+        
+        # Also check for individual known disease names in prompt
+        diseases = [
+            "acute bronchitis", "influenza-like illness", "ischemic stroke", "hypertensive crisis",
+            "hypothyroidism", "acute coronary syndrome", "unstable angina", "congestive heart failure",
+            "pulmonary embolism", "sepsis", "pneumonia", "copd exacerbation", "asthma attack", "migraine",
+            "tension-type headache", "meningitis", "type 2 diabetes mellitus", "gastro-oesophageal reflux disease",
+            "peptic ulcer disease", "appendicitis", "acute cholecystitis", "acute pancreatitis", "urinary tract infection",
+            "pyelonephritis", "deep vein thrombosis", "generalised anxiety disorder", "panic attack",
+            "viral upper respiratory infection", "viral pharyngitis", "acute pharyngitis"
+        ]
+        for d in diseases:
+            if d in prompt_lower:
+                candidates.append(d)
+
+        # Deduplicate candidates
+        candidates = list(dict.fromkeys(candidates))
+        if not candidates:
+            candidates = ["general"]
+
+        target_diag = candidates[0]
+        target_diag_und = target_diag.replace(" ", "_")
         
         if "follow-up questions" in prompt_lower or "questions" in prompt_lower:
             mock_json = json.dumps({
                 "questions": [
                     {
-                        "question": "Has the chest pain radiated to your left arm or jaw?",
-                        "purpose": "Evaluate for acute coronary syndrome or myocardial ischemia",
-                        "related_diagnosis": "Acute Coronary Syndrome",
+                        "question": "Has the chest pain radiated to your left arm or jaw?" if "chest" in prompt_lower else f"How long have you been experiencing symptoms of {target_diag}?",
+                        "purpose": "Evaluate for acute coronary syndrome or myocardial ischemia" if "chest" in prompt_lower else f"Evaluate for suspected {target_diag}",
+                        "related_diagnosis": "unstable_angina" if "chest" in prompt_lower else target_diag_und,
                         "priority": "HIGH",
                         "clinical_importance": "HIGH"
                     },
                     {
-                        "question": "Does taking deep breaths make the chest pain feel worse?",
-                        "purpose": "Evaluate for pleuritic chest pain causes like pneumonia or pulmonary embolism",
-                        "related_diagnosis": "Pneumonia",
+                        "question": "Does taking deep breaths make the chest pain feel worse?" if "chest" in prompt_lower else "Have the symptoms been worsening or improving?",
+                        "purpose": "Evaluate for pleuritic chest pain causes like pneumonia or pulmonary embolism" if "chest" in prompt_lower else "Check disease progression",
+                        "related_diagnosis": "pneumonia" if "chest" in prompt_lower else target_diag_und,
                         "priority": "ROUTINE",
                         "clinical_importance": "MEDIUM"
                     }
@@ -246,51 +277,46 @@ class MockLLMProvider(BaseLLMProvider):
             
         elif "soap" in prompt_lower:
             mock_json = json.dumps({
-                "subjective": "Patient is a 68-year-old male presenting with acute chest pain, dyspnea, and sweating.",
-                "objective": "BP 90/60, pulse 110, respiratory rate 24, SpO2 95%. ECG shows ST elevation.",
-                "assessment": "ACS / Unstable Angina. Patient at high cardiac event risk (HEART Score 9.0).",
-                "plan": "Administer oxygen, interpret urgent 12-lead ECG, check serial troponins. Absolute contraindicated: steroids due to diabetes."
+                "subjective": f"Patient is presenting with symptoms suggestive of {target_diag}.",
+                "objective": "BP 120/80, pulse 80, temperature 37.0 C, SpO2 98%.",
+                "assessment": f"Suspected {target_diag}.",
+                "plan": f"Conservative management, monitoring, and follow-up for symptoms of {target_diag}."
             })
             
         elif "clinical summary" in prompt_lower:
             mock_json = json.dumps({
-                "assessment": "Cardiovascular distress showing significant tachycardia and chest pressure.",
-                "key_findings": ["Chest pain", "Dyspnea", "ST Elevation"],
-                "unresolved_issues": ["Confirm exact troponin values"],
-                "next_steps": ["Transfer to acute cardiology bay"]
+                "assessment": f"Symptom profile match for {target_diag}.",
+                "key_findings": ["Fever" if "fever" in prompt_lower else "General symptoms"],
+                "unresolved_issues": ["Confirm specific laboratory tests"],
+                "next_steps": [f"Initiate care plan for {target_diag}"]
             })
             
         elif "investigation" in prompt_lower:
             mock_json = json.dumps({
                 "investigations": [
                     {
-                        "name": "12-Lead ECG Interpretation",
-                        "reason": "Indicated immediately for patients presenting with chest pain to rule out STEMI.",
-                        "priority": "URGENT",
-                        "guideline_reference": "AHA/ACC Chest Pain Guideline 2021"
-                    },
-                    {
-                        "name": "High-Sensitivity Troponin Assays",
-                        "reason": "Indicated to evaluate myocardial infarction within 1 hour.",
-                        "priority": "URGENT",
-                        "guideline_reference": "AHA/ACC Chest Pain Guideline 2021"
+                        "name": f"CBC (Complete Blood Count) for {target_diag}",
+                        "reason": f"Indicated to evaluate systemic response for suspected {target_diag}.",
+                        "priority": "ROUTINE",
+                        "guideline_reference": "NICE Guidelines"
                     }
                 ]
             })
             
         elif "ranked in the current order" in prompt_lower or "differential_explanation" in prompt_lower:
+            explanations = {}
+            for cand in candidates:
+                cand_und = cand.replace(" ", "_")
+                explanations[cand_und] = f"Ranked based on patient symptom profile and match score for {cand}."
             mock_json = json.dumps({
-                "explanations": {
-                    "unstable_angina": "Ranked highest due to active exertional chest pain and high-risk cardiovascular profile.",
-                    "acs": "Ranked second because of matching cardiac symptom triad (chest pain, sweating, dyspnea) and high score index."
-                }
+                "explanations": explanations
             })
             
         elif "patient" in prompt_lower:
             mock_json = json.dumps({
-                "explanation_text": "We are closely checking your heart function because of the pressure in your chest.",
-                "reassurance": "You are currently in a monitored clinic environment.",
-                "warnings": ["Please notify the team immediately if the chest pain worsens or spreads to your arm."]
+                "explanation_text": f"We are checking your symptoms to rule out conditions like {target_diag}.",
+                "reassurance": "Your vital signs are within stable ranges.",
+                "warnings": ["Please seek immediate medical attention if you experience difficulty breathing or chest pain."]
             })
             
         else:

@@ -66,12 +66,12 @@ class RiskFactorEvaluator:
             - List[IdentifiedRiskFactor]: full detail records
             - List[str]: just the IDs of present risk factors (for scorer input)
         """
-        # Normalise all source text to lower-case
-        history_text = " | ".join(medical_history).lower()
-        meds_text = " | ".join(current_medications).lower()
-        allergies_text = " | ".join(allergies).lower()
-        fh_text = self._flatten_family_history(family_history or []).lower()
-        social_text = (social_history or "").lower()
+        # Normalise all source text to lower-case and replace underscores with spaces
+        history_text = " | ".join(medical_history).lower().replace("_", " ")
+        meds_text = " | ".join(current_medications).lower().replace("_", " ")
+        allergies_text = " | ".join(allergies).lower().replace("_", " ")
+        fh_text = self._flatten_family_history(family_history or []).lower().replace("_", " ")
+        social_text = (social_history or "").lower().replace("_", " ")
 
         source_lookup: Dict[str, str] = {
             "medical_history": history_text,
@@ -84,13 +84,15 @@ class RiskFactorEvaluator:
         identified: List[IdentifiedRiskFactor] = []
         identified_ids: List[str] = []
 
+        import re
+
         for rule in self._rules:
             rf_id: str = rule.get("id", "unknown")
             rf_name: str = rule.get("name", rf_id)
             rf_category: str = rule.get("category", "other")
             rf_modifier: float = float(rule.get("confidence_modifier", 0.0))
             source_fields: List[str] = rule.get("source_fields", [])
-            detection_terms: List[str] = [t.lower() for t in rule.get("detection_terms", [])]
+            detection_terms: List[str] = [t.lower().replace("_", " ") for t in rule.get("detection_terms", [])]
 
             tracer.increment_evaluated()
 
@@ -99,7 +101,8 @@ class RiskFactorEvaluator:
             for field_name in source_fields:
                 text = source_lookup.get(field_name, "")
                 for term in detection_terms:
-                    if term in text:
+                    pattern = re.compile(r"\b" + re.escape(term) + r"\b")
+                    if pattern.search(text):
                         matched_source = field_name
                         break
                 if matched_source:

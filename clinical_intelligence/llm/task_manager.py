@@ -95,7 +95,8 @@ class LLMTaskManager:
         }
 
         # Priority 1: Emergency Escalation Bypass
-        if red_flags:
+        from clinical_intelligence.config.runtime import ENABLE_EMERGENCY_WORKFLOW
+        if red_flags and ENABLE_EMERGENCY_WORKFLOW:
             logger.info("Emergency Red Flags detected! Running emergency escalation bypass branch.")
             telemetry_order = 1
             escalation_start = time.perf_counter()
@@ -134,6 +135,44 @@ class LLMTaskManager:
                 next_steps=[res_json.get("stabilization_notes", "Cardiology alert")] if res_json else ["Secure access"]
             )
             results["needs_human_review"] = True
+
+            # Load cached background tasks if available
+            aq_cached = session_cache.get(f"adap:{session_id}")
+            if aq_cached and "questions" in aq_cached:
+                results["llm_adaptive_questions"] = [
+                    AdaptiveQuestionItem(
+                        question=q.get("question", ""),
+                        purpose=q.get("purpose", ""),
+                        related_diagnosis=q.get("related_diagnosis", ""),
+                        priority=q.get("priority", "ROUTINE"),
+                        clinical_importance=q.get("clinical_importance", "Low")
+                    )
+                    for q in aq_cached["questions"]
+                ]
+
+            de_cached = session_cache.get(f"diff:{session_id}")
+            if de_cached and "explanations" in de_cached:
+                results["llm_differential_explanations"] = de_cached.get("explanations", {})
+
+            ir_cached = session_cache.get(f"inve:{session_id}")
+            if ir_cached:
+                models, _ = ResponseFormatter.format_investigations(ir_cached)
+                results["llm_recommended_investigations"] = models
+
+            cs_cached = session_cache.get(f"clin:{session_id}")
+            if cs_cached:
+                model, _ = ResponseFormatter.format_clinical_summary(cs_cached)
+                results["llm_clinical_summary"] = model
+
+            soap_cached = session_cache.get(f"soap:{session_id}")
+            if soap_cached:
+                model, _ = ResponseFormatter.format_soap(soap_cached)
+                results["llm_soap_notes"] = model
+
+            pe_cached = session_cache.get(f"pati:{session_id}")
+            if pe_cached:
+                model, _ = ResponseFormatter.format_patient_explanation(pe_cached)
+                results["llm_patient_explanation"] = model
             
             # Asynchronous background execution of other tasks
             asyncio.create_task(
@@ -299,12 +338,34 @@ class LLMTaskManager:
     ) -> None:
         """Runs background backfill tasks for emergency cases asynchronously."""
         try:
-            # Execute adaptive questions in background
-            await self.orchestrator.execute_prompt(
-                prompt_id="adaptive_questions_v1",
-                template_params=template_params,
-                cache_key=f"aq_bg:{session_id}",
-                hallucination_guard=hallucination_guard
-            )
+            self.session_manager.register_session(session_id)
+            session_cache = self.session_manager.get_cache(session_id)
+            self.orchestrator.cache = session_cache
+
+            enabled_defs = {td.task_id: td for td in TASK_DEFINITIONS if td.enabled and td.task_id != "EmergencyEscalation"}
+            completed_tasks: Set[str] = set()
+            execution_counter = 1
+            bg_results: Dict[str, Any] = {}
+            while len(completed_tasks) < len(enabled_defs):
+                ready_tasks = []
+                for task_id, td in enabled_defs.items():
+                    if task_id in completed_tasks:
+                        continue
+                    dep_met = all(dep in completed_tasks or dep not in enabled_defs for dep in td.dependencies)
+                    if dep_met:
+                        ready_tasks.append(td)
+                if not ready_tasks:
+                    break
+                coros = []
+                for td in ready_tasks:
+                    coros.append(
+                        self._execute_single_task(
+                            td, session_id, template_params, hallucination_guard, state, bg_results, execution_counter
+                        )
+                    )
+                    execution_counter += 1
+                await asyncio.gather(*coros)
+                for td in ready_tasks:
+                    completed_tasks.add(td.task_id)
         except Exception as e:
             logger.warning(f"Background task execution failed: {e}")

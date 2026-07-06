@@ -1,0 +1,157 @@
+{
+  "session_id": "consultation-xyz-9cd2e1",
+  "timestamp": 1783350128.8622003,
+  "pyannote_segments": [
+    {
+      "start": 3.45659375,
+      "end": 5.19471875,
+      "label": "Speaker_0"
+    },
+    {
+      "start": 5.66721875,
+      "end": 8.232218750000001,
+      "label": "Speaker_0"
+    },
+    {
+      "start": 8.72159375,
+      "end": 9.430343750000002,
+      "label": "Speaker_1"
+    },
+    {
+      "start": 10.004093750000003,
+      "end": 12.450968750000001,
+      "label": "Speaker_1"
+    },
+    {
+      "start": 12.957218750000003,
+      "end": 13.51409375,
+      "label": "Speaker_0"
+    },
+    {
+      "start": 13.919093750000002,
+      "end": 17.14221875,
+      "label": "Speaker_0"
+    },
+    {
+      "start": 18.762218750000002,
+      "end": 19.63971875,
+      "label": "Speaker_1"
+    },
+    {
+      "start": 20.11221875,
+      "end": 22.05284375,
+      "label": "Speaker_1"
+    },
+    {
+      "start": 23.01471875,
+      "end": 23.47034375,
+      "label": "Speaker_1"
+    },
+    {
+      "start": 23.65596875,
+      "end": 24.887843750000002,
+      "label": "Speaker_1"
+    },
+    {
+      "start": 25.613468750000003,
+      "end": 27.098468750000002,
+      "label": "Speaker_1"
+    },
+    {
+      "start": 27.65534375,
+      "end": 28.735343750000002,
+      "label": "Speaker_2"
+    },
+    {
+      "start": 29.27534375,
+      "end": 30.625343750000003,
+      "label": "Speaker_2"
+    },
+    {
+      "start": 31.53659375,
+      "end": 32.009093750000005,
+      "label": "Speaker_2"
+    },
+    {
+      "start": 32.16096875,
+      "end": 32.228468750000005,
+      "label": "Speaker_2"
+    },
+    {
+      "start": 32.228468750000005,
+      "end": 32.61659375,
+      "label": "Speaker_1"
+    },
+    {
+      "start": 33.35909375,
+      "end": 35.45159375,
+      "label": "Speaker_1"
+    },
+    {
+      "start": 35.97471875,
+      "end": 39.197843750000004,
+      "label": "Speaker_1"
+    },
+    {
+      "start": 40.00784375,
+      "end": 41.84721875,
+      "label": "Speaker_0"
+    },
+    {
+      "start": 42.454718750000005,
+      "end": 47.06159375,
+      "label": "Speaker_1"
+    },
+    {
+      "start": 47.736593750000004,
+      "end": 48.31034375,
+      "label": "Speaker_0"
+    },
+    {
+      "start": 48.462218750000005,
+      "end": 49.17096875,
+      "label": "Speaker_0"
+    },
+    {
+      "start": 49.407218750000006,
+      "end": 50.43659375,
+      "label": "Speaker_0"
+    }
+  ],
+  "words": [],
+  "word_speaker_mapping": [],
+  "final_events": [
+    {
+      "event_id": "40d3d3f0-498d-40a7-9fb8-921c5fc00ce6",
+      "sequence_number": 14,
+      "speaker_id": "doctor",
+      "transcript": "prescribe you some antibiotics and syrup for the cough.",
+      "start_time": 41.28333333333333,
+      "end_time": 44.949999999999996
+    },
+    {
+      "event_id": "7b16cabf-8d7d-4031-845c-91344791b529",
+      "sequence_number": 15,
+      "speaker_id": "patient",
+      "transcript": "How long will it take to feel better?",
+      "start_time": 44.949999999999996,
+      "end_time": 47.416666666666664
+    },
+    {
+      "event_id": "04f6540f-f2f8-41b8-9e59-25496801b246",
+      "sequence_number": 16,
+      "speaker_id": "doctor",
+      "transcript": "Usually within three to four days if you rest and take the medicine on time. All right.",
+      "start_time": 47.416666666666664,
+      "end_time": 53.15
+    },
+    {
+      "event_id": "57559684-40cd-40ea-ab65-c3167f97c575",
+      "sequence_number": 17,
+      "speaker_id": "patient",
+      "transcript": "I'll do that. Thank you, Doctor.",
+      "start_time": 53.15,
+      "end_time": 55.21666666666667
+    }
+  ]
+}

@@ -64,8 +64,9 @@ def get_reasoning_result(session_id: str) -> Optional[ClinicalReasoningResult]:
             logger.warning("Integration: No state found for session=%s", session_id)
             return None
 
-        import os
-        run_llm = bool(os.getenv("GEMINI_API_KEY") or os.getenv("OPENAI_API_KEY"))
+        from clinical_intelligence.config.llm import GEMINI_API_KEY, OPENAI_API_KEY
+        from clinical_intelligence.config.runtime import ENABLE_LLM
+        run_llm = ENABLE_LLM and bool(GEMINI_API_KEY or OPENAI_API_KEY)
 
         engine = _get_engine()
         result = engine.reason(state, run_llm=run_llm)
@@ -89,7 +90,8 @@ def reason_from_state(state: object) -> ClinicalReasoningResult:
     Directly reason from a ClinicalState or dict without the app import.
     Useful for batch processing and API endpoints.
     """
-    import os
-    run_llm = bool(os.getenv("GEMINI_API_KEY") or os.getenv("OPENAI_API_KEY"))
+    from clinical_intelligence.config.llm import GEMINI_API_KEY, OPENAI_API_KEY
+    from clinical_intelligence.config.runtime import ENABLE_LLM
+    run_llm = ENABLE_LLM and bool(GEMINI_API_KEY or OPENAI_API_KEY)
     engine = _get_engine()
     return engine.reason(state, run_llm=run_llm)

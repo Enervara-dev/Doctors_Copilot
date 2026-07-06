@@ -136,6 +136,25 @@ class ReasoningCoordinator(IReasoningCoordinator):
         runtime.ENABLE_LLM = orig_llm
         
         duration_ms = (time.perf_counter() - start_t) * 1000.0
+
+        # Generate and attach decision support details (Milestone 2 Module 7)
+        from clinical_intelligence.interview.conversation_manager import ConversationManager
+        from clinical_intelligence.rule_engine.models import DecisionAction
+        conv_manager = ConversationManager()
+        
+        decision_support = conv_manager.generate_decision(
+            session=session,
+            reasoning_result=result,
+            registry=self.engine._profile_registry
+        )
+        result.decision_support = decision_support
+        
+        if decision_support.next_recommendation:
+            next_rec = decision_support.next_recommendation
+            if next_rec.action == DecisionAction.ADVANCE_STAGE:
+                old_stage = session.consultation_stage
+                session.consultation_stage = next_rec.target_finding
+                logger.info(f"ReasoningCoordinator: Advancing stage from {old_stage} to {next_rec.target_finding}")
         
         from clinical_intelligence.rule_engine.models import WorkflowTelemetry
         session.audit_metadata["telemetry"] = WorkflowTelemetry(
