@@ -26,6 +26,7 @@ from app.services.providers.models import TranscriptEvent
 from app.services.transcript_bus import transcript_bus
 from app.utils.logging import logger
 from app.services.clinical.extractors import NameExtractor, VitalsExtractor, context_manager
+from app.services.clinical.dictionary.loader import dictionary_manager
 
 class ClinicalStateEngine:
     def __init__(self):
@@ -404,13 +405,64 @@ class ClinicalStateEngine:
                         state.symptoms[0]["severity"] = state.severity.lower()
 
                 # 6. Medical History
+                # A condition mentioned next to a family relation ("my father had a heart
+                # attack") belongs to that relative, not to the patient's own history.
+                family_terms = set()
+                for relation, synonyms in dictionary_manager.get_family().items():
+                    family_terms.add(relation)
+                    family_terms.update(synonyms)
+                # The extractor works on normalised text ("heart attack" -> "coronary artery
+                # disease"), so attribution must be checked against the same normalised form.
+                normalized_lower = self.pipeline.normalizer.normalize(text).lower()
+                sentences = [x for x in re.split(r'[.!?\n]', normalized_lower) if x.strip()]
+                family_attributed = {f.condition.lower() for f in result.family_histories}
+
+                def _attributed_relative(term: str) -> Optional[str]:
+                    """Returns the relative a condition is attributed to, else None."""
+                    for sent in sentences:
+                        if term not in sent:
+                            continue
+                        for rel_term in family_terms:
+                            if re.search(r'\b' + re.escape(rel_term) + r'\b', sent):
+                                return rel_term
+                    return None
+
                 for diag in result.diagnoses:
                     diag_name = diag.name.capitalize()
+                    relative = _attributed_relative(diag.name.lower())
+                    if relative is None and diag.name.lower() in family_attributed:
+                        relative = next((f.relationship for f in result.family_histories
+                                         if f.condition.lower() == diag.name.lower()), None)
+                    if relative:
+                        entry = {
+                            "relationship": relative,
+                            "condition": diag_name,
+                            "present": str(diag.present),
+                            "confidence": getattr(diag, "confidence", 1.0),
+                        }
+                        if not any(f.get("relationship") == relative and f.get("condition") == diag_name
+                                   for f in state.family_history):
+                            state.family_history.append(entry)
+                            self._record_provenance(
+                                event.session_id, f"family_history.{relative}.{diag.name.lower()}",
+                                event, state.version
+                            )
+                        continue
                     if diag.present:
-                        is_assessment = any(phrase in text_lower for phrase in [
-                            "looks like", "could be", "might be", "looks to be", "impression",
-                            "suspect", "diagnose", "rule out", "r/o", "probably", "likely"
-                        ])
+                        # Only the doctor voices a working assessment. A patient saying
+                        # "I was diagnosed with X" is reporting past medical history.
+                        is_past_history = re.search(
+                            r'\b(?:was|were|been|got)\s+diagnosed\b|\bhistory of\b|\bknown case of\b',
+                            text_lower
+                        ) is not None
+                        is_assessment = (
+                            speaker_id == "doctor"
+                            and not is_past_history
+                            and any(phrase in text_lower for phrase in [
+                                "looks like", "could be", "might be", "looks to be", "impression",
+                                "suspect", "diagnose", "rule out", "r/o", "probably", "likely"
+                            ])
+                        )
                         if not is_assessment:
                             if diag_name not in state.medical_history:
                                 state.medical_history.append(diag_name)
@@ -419,6 +471,40 @@ class ClinicalStateEngine:
                         if diag_name in state.medical_history:
                             state.medical_history.remove(diag_name)
                             self._record_provenance(event.session_id, f"medical_history.{diag.name.lower()}", event, state.version)
+
+                # 6b. Family History and Social Risk Factors extracted from this turn.
+                # The reasoning engine reads state["family_history"] and state["risk_factors"],
+                # so these must be persisted or risk-factor evaluation silently misses them.
+                for fh in result.family_histories:
+                    fh_name = fh.condition.capitalize()
+                    if not any(f.get("relationship") == fh.relationship and f.get("condition") == fh_name
+                               for f in state.family_history):
+                        state.family_history.append({
+                            "relationship": fh.relationship,
+                            "condition": fh_name,
+                            "present": str(fh.present),
+                            "confidence": fh.confidence,
+                        })
+                        self._record_provenance(
+                            event.session_id,
+                            f"family_history.{fh.relationship}.{fh.condition.lower()}",
+                            event, state.version
+                        )
+
+                for rf in result.risk_factors:
+                    existing = next((r for r in state.risk_factors if r.get("name") == rf.name), None)
+                    if existing:
+                        existing["present"] = str(rf.present)
+                        existing["confidence"] = rf.confidence
+                    else:
+                        state.risk_factors.append({
+                            "name": rf.name,
+                            "present": str(rf.present),
+                            "confidence": rf.confidence,
+                        })
+                    self._record_provenance(
+                        event.session_id, f"risk_factors.{rf.name.lower()}", event, state.version
+                    )
 
                 # 7. Current Medications (reported by patient/attender)
                 for med in result.medications:

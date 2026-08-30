@@ -9,7 +9,6 @@ Part of the Clinical Intelligence workspace layout. Handles logic, routines, or 
 Module/Component: Clinical Intelligence
 """
 
-from abc import ABC, abstractmethod
 from pydantic import BaseModel, Field
 from typing import Any, Dict, List, Literal, Optional
 
@@ -49,11 +48,3 @@ class DiseaseProfile(BaseModel):
     gender_modifier: Optional[Dict[str, Any]] = None
     guideline_tags: List[str] = Field(default_factory=list)
 
-from typing import TYPE_CHECKING
-if TYPE_CHECKING:
-    from clinical_intelligence.evidence.evidence_context import EvidenceContext
-
-class EvidenceProvider(ABC):
-    @abstractmethod
-    def evaluate(self, context: EvidenceContext, disease: DiseaseProfile) -> EvidenceResult:
-        pass

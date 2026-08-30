@@ -173,28 +173,18 @@ class SpeakerVerificationService:
         now = time.time()
 
         # 3. Registry Registration & Matching
-        # If registry for the proposed role is empty, register the voice embedding
-        if proposed_role in ("doctor", "patient", "attender"):
-            role_voice = getattr(registry, proposed_role)
-            if role_voice is None:
-                # Double-check that it does not match any other active registered role
-                best_sim = 0.0
-                for voice in registered_voices:
-                    sim = cosine_similarity(embedding, voice.average_embedding)
-                    if sim > best_sim:
-                        best_sim = sim
-                
-                # If it matches an existing role with high confidence, do not create duplicate
-                if best_sim >= SPEAKER_MATCH_THRESHOLD:
-                    pass
-                else:
-                    # Register new voice for proposed role
-                    registry.register_voice(proposed_role, embedding, now)
-                    logger.info(
-                        f"SpeakerVerificationService: Registered initial voice for role '{proposed_role}'.",
-                        extra={"session_id": session_id, "role": proposed_role}
-                    )
-                    return VerificationResult.VERIFIED, 1.0, proposed_role
+        # Voice profiles are anchored to the diarization cluster, never to the proposed
+        # role. Seeding a profile with `proposed_role` meant the first (unverified)
+        # label decided the identity, and the confirmation counter then locked that
+        # guess in -- the verifier confirmed its own input instead of checking it.
+        # Roles are applied on top of these profiles by the alignment layer.
+        if not registered_voices:
+            registry.register_voice_for_cluster(raw_speaker, embedding, now)
+            logger.info(
+                "SpeakerVerificationService: Registered first voice profile for cluster.",
+                extra={"session_id": session_id, "raw_speaker": raw_speaker}
+            )
+            return VerificationResult.VERIFIED, 1.0, raw_speaker
 
         # Compare against all active registered voices
         best_similarity = 0.0
@@ -217,8 +207,9 @@ class SpeakerVerificationService:
             return VerificationResult.TENTATIVE, best_similarity, matched_voice.speaker_id
 
         else:
-            # Unknown speaker
-            new_voice = registry.register_voice("UNKNOWN", embedding, now)
+            # A voice that matches nothing on file: give it a profile of its own, keyed
+            # by the cluster it arrived on, so later turns can be matched back to it.
+            new_voice = registry.register_voice_for_cluster(raw_speaker, embedding, now)
             return VerificationResult.UNKNOWN, best_similarity, new_voice.speaker_id
 
     async def _bg_worker_loop(self) -> None:
@@ -304,22 +295,29 @@ class SpeakerVerificationService:
 
         # Lock mapping if count reaches MINIMUM_CONFIRMATIONS
         if count >= MINIMUM_CONFIRMATIONS:
-            locked_map[raw_speaker] = matched_spk
-            if matched_spk in ("doctor", "patient", "attender"):
-                role_locks.add(matched_spk)
-
-            # Update speaker mapping in speaker alignment service
             from app.services.speaker_alignment import speaker_alignment_service
             current_mapping = speaker_alignment_service._session_mappings.get(session_id)
-            
+
+            # `matched_spk` is now the cluster whose voice profile this audio matched,
+            # not a role. When it differs from the cluster the diarizer reported, the
+            # same person has been handed two labels: adopt the role already assigned
+            # to the matched cluster so one voice keeps one role for the session.
+            resolved_role = (current_mapping or {}).get(matched_spk, matched_spk)
+            if resolved_role not in ("doctor", "patient", "attender"):
+                return
+
+            locked_map[raw_speaker] = resolved_role
+            role_locks.add(resolved_role)
+
             # Audit log format: medical audit logging standard
-            if current_mapping and current_mapping.get(raw_speaker) != matched_spk:
+            if current_mapping and current_mapping.get(raw_speaker) != resolved_role:
                 old_role = current_mapping.get(raw_speaker)
-                
+                matched_spk = resolved_role
+
                 # Update mapping
                 speaker_alignment_service._session_mappings[session_id] = {
                     **current_mapping,
-                    raw_speaker: matched_spk
+                    raw_speaker: resolved_role
                 }
                 
                 telemetry.speaker_changed = True

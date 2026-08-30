@@ -20,7 +20,14 @@ from clinical_intelligence.validators.schema_validator import JSONSchemaValidato
 from clinical_intelligence.validators.response_validator import ClinicalResponseValidator
 from clinical_intelligence.validators.hallucination_guard import HallucinationGuard
 from clinical_intelligence.config.runtime import PROVIDER_TIMEOUT_SECONDS, RETRY_LIMIT
-from clinical_intelligence.config.llm import GEMINI_API_KEY, OPENAI_API_KEY
+from clinical_intelligence.config.llm import (
+    DEFAULT_GEMINI_MODEL,
+    DEFAULT_OPENAI_MODEL,
+    DEFAULT_TEMPERATURE,
+    GEMINI_API_KEY,
+    MAX_RESPONSE_TOKENS,
+    OPENAI_API_KEY,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -64,9 +71,15 @@ class LLMOrchestrator:
         self.registry = PromptRegistry()
         self.cache = cache or LLMResultCache()
         
-        # Instantiate available provider channels
-        self.gemini = GeminiProvider("gemini-2.5-flash")
-        self.openai = OpenAIProvider("gpt-4o-mini")
+        # Instantiate available provider channels. Model, temperature and the token
+        # ceiling come from config: hardcoding them here left MAX_RESPONSE_TOKENS and
+        # DEFAULT_TEMPERATURE unused, so tuning them had no effect.
+        self.gemini = GeminiProvider(
+            DEFAULT_GEMINI_MODEL, temperature=DEFAULT_TEMPERATURE, max_tokens=MAX_RESPONSE_TOKENS
+        )
+        self.openai = OpenAIProvider(
+            DEFAULT_OPENAI_MODEL, temperature=DEFAULT_TEMPERATURE, max_tokens=MAX_RESPONSE_TOKENS
+        )
         self.mock_llm = MockLLMProvider("mock-model")
 
         # Telemetry metrics counters

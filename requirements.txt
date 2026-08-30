@@ -118,7 +118,6 @@
 pyyaml>=6.0.0
 pytest>=8.0.0
 pytest-asyncio>=0.23.0
-chance>=0.3.0
 
 # Core Framework & Web Server
 fastapi>=0.110.0
@@ -157,11 +156,11 @@ PyAudio>=0.2.14
 #   python -c "from pyannote.audio import Pipeline; print('OK')"
 #   → SUCCESS: from pyannote.audio import Pipeline - OK
 # ============================================================
-torch==2.8.0
-torchaudio==2.8.0
-numpy==1.26.4
-scipy==1.15.1
-pyannote.audio==3.3.2
+torch>=2.13.0
+torchaudio>=2.11.0
+numpy>=1.26.4
+scipy>=1.15.1
+pyannote.audio>=4.0.7   # 4.x renamed the auth kwarg to `token=`; 3.x will break diarization_worker
 pyannote-core>=5.0.0,<6.0
 pyannote-pipeline>=3.0.1,<4.0
 pyannote-database>=5.0,<6.0
@@ -171,3 +170,14 @@ soundfile>=0.12.0
 speechbrain==1.1.0
 HyperPyYAML==1.2.3
 
+# --- Milestone 2/3: reasoning, knowledge graph and retrieval -----------------
+# These were required at runtime but never declared, so a clean install could not
+# start the reasoning engine.
+# runner.py imports this at call time to re-enter the running FastAPI loop; without
+# it every LLM task raises ModuleNotFoundError and the reasoning result comes back
+# with all llm_* fields null.
+nest-asyncio>=1.6.0
+neo4j>=6.3.0
+pinecone>=9.1.0
+httpx>=0.28.1
+huggingface-hub>=1.28.0

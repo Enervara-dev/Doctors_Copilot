@@ -4,6 +4,102 @@ An enterprise-grade, low-latency, and deterministic clinical assistant system de
 
 ---
 
+## 0. Running It
+
+### Quick start
+
+```powershell
+.un.ps1
+```
+
+Starts the API, serves the console, waits for the models to load and opens the browser.
+`Ctrl+C` stops both. Options: `-Mode development` (skip pyannote, fast startup),
+`-ApiPort`, `-UiPort`, `-NoBrowser`.
+
+### Manual
+
+Two processes. **Always use `.venv\Scripts\python.exe`** — torch, pyannote and
+speechbrain are installed there and nowhere else, so a system Python starts and then
+fails when it loads the diarizer.
+
+```powershell
+# 1. API — first start takes ~40 s while pyannote and ECAPA load
+$env:CLINICAL_COPILOT_DIARIZATION_MODE = "production"
+.venv\Scripts\python.exe -m uvicorn app.main:app --host 127.0.0.1 --port 8000
+
+# 2. Console (separate terminal) — the mic needs a secure context, so serve it
+python -m http.server 5500 --directory frontend
+```
+
+Open <http://127.0.0.1:5500> and press **Start consultation**.
+Interactive API docs are at <http://127.0.0.1:8000/docs>.
+
+### Replaying a recording instead of speaking
+
+```powershell
+$env:DEMO_SESSION_ID = "demo-1"
+.venv\Scripts\python.exe stream_audio.py path	o\consultation.wav doctor
+```
+
+Any sample rate or channel count is accepted; the script converts. Then open
+`http://127.0.0.1:5500/?session=demo-1` to view that consultation.
+
+### Tests
+
+```powershell
+.venv\Scripts\python.exe -m pytest tests/ clinical_intelligence/tests/ -q
+```
+
+### Setup from scratch
+
+```powershell
+py -3.11 -m venv .venv
+.venv\Scripts\python.exe -m pip install -r requirements.txt
+```
+
+Then fetch the models once, with `HF_HUB_OFFLINE=0` and a Hugging Face token that has
+accepted the `pyannote/speaker-diarization-3.1` licence:
+
+```powershell
+$env:HF_HUB_OFFLINE = "0"
+.venv\Scripts\python.exe -c "from app.services.diarization_worker import _lazy_init_pyannote; _lazy_init_pyannote()"
+.venv\Scripts\python.exe -c "from app.services.speaker_verification.backend import SpeechBrainBackend; SpeechBrainBackend().load_model()"
+```
+
+Afterwards the app runs offline from the cache (`HF_HUB_OFFLINE` defaults to `1`).
+
+**Behind a TLS-inspecting proxy** — corporate networks, some endpoint-security agents —
+`pip` and the Hugging Face downloader verify against certifi and will fail with
+`CERTIFICATE_VERIFY_FAILED`. Export the OS trust store once and point them at it:
+
+```powershell
+.venv\Scripts\python.exe -c "import ssl,base64;certs=[c for s in ('ROOT','CA') for c,e,_ in ssl.enum_certificates(s) if e=='x509_asn'];open('scratch/win-ca-bundle.pem','w').write(''.join('-----BEGIN CERTIFICATE-----
+'+'
+'.join(base64.b64encode(c).decode()[i:i+64] for i in range(0,len(base64.b64encode(c).decode()),64))+'
+-----END CERTIFICATE-----
+' for c in certs))"
+$env:REQUESTS_CA_BUNDLE = "$PWD\scratch\win-ca-bundle.pem"
+$env:SSL_CERT_FILE      = "$PWD\scratch\win-ca-bundle.pem"
+# pip additionally needs it passed explicitly:
+.venv\Scripts\python.exe -m pip install --cert $env:REQUESTS_CA_BUNDLE -r requirements.txt
+```
+
+The application itself does **not** need these at runtime — it loads the OS trust store
+directly for its outbound API calls.
+
+### Configuration
+
+Settings live in `.env` (prefix `CLINICAL_COPILOT_`). The ones that change behaviour most:
+
+| Setting | Effect |
+|---|---|
+| `DIARIZATION_MODE` | `production` uses pyannote for real speaker identity; `development` uses a mock time-cycle and **will mis-attribute speech** |
+| `STT_PROVIDER_MODE` | `production` uses ElevenLabs Scribe; `development` emits placeholder text |
+| `ENABLE_RED_FLAG_ALERTS` | when `False`, red flags are detected but stripped from the API response |
+| `ENABLE_LLM` | turns the LLM enrichment layer on/off |
+
+---
+
 ## 1. Executive Summary & Core Capabilities
 
 The **Clinical Consultation Copilot** acts as an ambient assistant during doctor-patient consultations. It consumes raw audio streams from multiple participants (Doctor, Patient, and Attender), processes them through speech-to-text and speaker-diarization layers, extracts structured clinical facts, and evaluates the clinical state against a safety-first clinical reasoning engine.

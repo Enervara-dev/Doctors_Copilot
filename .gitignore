@@ -24,3 +24,8 @@ Thumbs.db
 # System/Antigravity Generated Task Logs
 .system_generated/
 /brain/
+
+# Model weights are fetched from Hugging Face on first run, not versioned.
+# These were previously committed as stub files holding another machine's cache
+# paths, which silently disabled speaker verification.
+pretrained_models/

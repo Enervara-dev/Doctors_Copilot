@@ -107,6 +107,10 @@ async def receive_loop(session_id: str, role: str, provider) -> None:
 
             from app.services.speaker_alignment import speaker_alignment_service
             events = speaker_alignment_service.align_and_segment(session_id, role, res, provider)
+            if events and events[0].is_final:
+                # Rejoin a word the provider split across this commit boundary before
+                # the halves reach the bus and clinical extraction.
+                events = speaker_alignment_service.stitch_against_published(session_id, events)
             for event in events:
                 logger.info(
                     f"STTWorker: Broadcasting transcript event ({'FINAL' if event.is_final else 'PARTIAL'})",

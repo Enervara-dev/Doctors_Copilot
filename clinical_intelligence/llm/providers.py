@@ -12,11 +12,95 @@ Module/Component: Clinical Intelligence
 import httpx
 import json
 import logging
+import ssl
 import time
 from typing import Any, Dict, List, Optional
 
-from clinical_intelligence.config.llm import GEMINI_API_KEY, OPENAI_API_KEY
+from clinical_intelligence.config.llm import (
+    GEMINI_API_KEY,
+    OPENAI_API_KEY,
+    THINKING_BUDGET_TOKENS,
+)
 from clinical_intelligence.config.runtime import CIRCUIT_BREAKER, PROVIDER_TIMEOUT_SECONDS
+
+
+def _build_ssl_context() -> ssl.SSLContext:
+    """
+    TLS context that trusts the operating system's certificate store.
+
+    httpx verifies against certifi's bundle by default, which does not contain the
+    root CA of a TLS-inspecting corporate proxy or endpoint-security agent. Those
+    CAs are installed in the OS store, so loading it keeps certificate verification
+    fully enabled while still working behind such a proxy.
+    """
+    context = ssl.create_default_context()
+    try:
+        context.load_default_certs(ssl.Purpose.SERVER_AUTH)
+    except Exception:  # pragma: no cover - platform dependent
+        pass
+    return context
+
+
+_SSL_CONTEXT = _build_ssl_context()
+
+
+# Keys Gemini's responseSchema accepts. Anything else (notably `additionalProperties`
+# and `$schema`) makes the request 400, so unknown keywords are dropped rather than
+# forwarded.
+_SCHEMA_KEYS = {"type", "format", "description", "nullable", "enum",
+                "items", "properties", "required", "propertyOrdering"}
+
+
+def _to_response_schema(schema):
+    """Reduces a JSON Schema fragment to the subset Gemini will accept."""
+    if not isinstance(schema, dict):
+        return None
+    out = {}
+    for key, value in schema.items():
+        if key not in _SCHEMA_KEYS:
+            continue
+        if key == "properties" and isinstance(value, dict):
+            out[key] = {k: _to_response_schema(v) for k, v in value.items()}
+        elif key == "items":
+            out[key] = _to_response_schema(value)
+        else:
+            out[key] = value
+    return out or None
+
+
+def _read_gemini_text(resp_data: Dict[str, Any]) -> str:
+    """
+    Pulls the reply text out of a Gemini response.
+
+    A candidate can come back with no `parts` at all - `MAX_TOKENS` reached while
+    thinking, or a safety block - and indexing straight into parts[0] turns that into
+    an opaque KeyError. Report why instead, so the failure is diagnosable rather than
+    just another circuit-breaker tick.
+    """
+    candidates = resp_data.get("candidates") or []
+    if not candidates:
+        raise ValueError(f"Gemini returned no candidates: {resp_data.get('promptFeedback', {})}")
+
+    candidate = candidates[0]
+    parts = (candidate.get("content") or {}).get("parts") or []
+    text = "".join(p.get("text", "") for p in parts).strip()
+
+    if not text:
+        reason = candidate.get("finishReason", "UNKNOWN")
+        usage = resp_data.get("usageMetadata", {})
+        raise ValueError(
+            f"Gemini returned no text (finishReason={reason}, "
+            f"thinkingTokens={usage.get('thoughtsTokenCount', 0)}, "
+            f"maxOutputTokens exhausted before the reply began)"
+        )
+
+    if candidate.get("finishReason") == "MAX_TOKENS":
+        logger.warning(
+            "Gemini hit maxOutputTokens; the reply is truncated and will fail schema "
+            "validation. Raise CLINICAL_COPILOT_MAX_RESPONSE_TOKENS or cap thinking "
+            "with CLINICAL_COPILOT_THINKING_BUDGET."
+        )
+    return text
 
 logger = logging.getLogger(__name__)
 
@@ -128,8 +212,18 @@ class GeminiProvider(BaseLLMProvider):
             "temperature": self.temperature,
             "maxOutputTokens": self.max_tokens,
         }
+        if THINKING_BUDGET_TOKENS is not None:
+            gen_config["thinkingConfig"] = {"thinkingBudget": THINKING_BUDGET_TOKENS}
         if schema:
             gen_config["responseMimeType"] = "application/json"
+            # Constrain the reply to the shape the validator requires. Asking only for
+            # "application/json" left the model free to invent its own envelope - it
+            # returned {"consultation_notes": {...}} for the SOAP prompt, which the
+            # validator rejected for missing top-level keys, so every well-formed
+            # response was thrown away and replaced with canned fallback text.
+            response_schema = _to_response_schema(schema)
+            if response_schema:
+                gen_config["responseSchema"] = response_schema
 
         body = {
             "contents": [{"parts": [{"text": prompt}]}],
@@ -139,7 +233,7 @@ class GeminiProvider(BaseLLMProvider):
         start_time = time.perf_counter()
         
         try:
-            async with httpx.AsyncClient(timeout=PROVIDER_TIMEOUT_SECONDS) as client:
+            async with httpx.AsyncClient(timeout=PROVIDER_TIMEOUT_SECONDS, verify=_SSL_CONTEXT) as client:
                 response = await client.post(url, json=body, headers=headers)
                 
             if response.status_code != 200:
@@ -148,8 +242,8 @@ class GeminiProvider(BaseLLMProvider):
                 response.raise_for_status()
 
             resp_data = response.json()
-            text = resp_data["candidates"][0]["content"]["parts"][0]["text"]
-            
+            text = _read_gemini_text(resp_data)
+
             latency_ms = (time.perf_counter() - start_time) * 1000.0
             self.record_success(latency_ms)
             return text
@@ -189,7 +283,7 @@ class OpenAIProvider(BaseLLMProvider):
         start_time = time.perf_counter()
         
         try:
-            async with httpx.AsyncClient(timeout=PROVIDER_TIMEOUT_SECONDS) as client:
+            async with httpx.AsyncClient(timeout=PROVIDER_TIMEOUT_SECONDS, verify=_SSL_CONTEXT) as client:
                 response = await client.post(url, json=body, headers=headers)
                 
             if response.status_code != 200:
@@ -276,9 +370,18 @@ class MockLLMProvider(BaseLLMProvider):
             })
             
         elif "soap" in prompt_lower:
+            # Never invent observations: echo the vitals carried on the prompt, and say so
+            # plainly when none were recorded. A fallback note claiming normal vitals for a
+            # hypertensive, tachycardic patient is a patient-safety hazard.
+            vitals_match = re.search(r"^vitals:\s*(.+)$", prompt, re.IGNORECASE | re.MULTILINE)
+            objective = (
+                f"Recorded vitals: {vitals_match.group(1).strip()}."
+                if vitals_match
+                else "No vital signs were recorded during this consultation."
+            )
             mock_json = json.dumps({
                 "subjective": f"Patient is presenting with symptoms suggestive of {target_diag}.",
-                "objective": "BP 120/80, pulse 80, temperature 37.0 C, SpO2 98%.",
+                "objective": objective,
                 "assessment": f"Suspected {target_diag}.",
                 "plan": f"Conservative management, monitoring, and follow-up for symptoms of {target_diag}."
             })
@@ -315,7 +418,7 @@ class MockLLMProvider(BaseLLMProvider):
         elif "patient" in prompt_lower:
             mock_json = json.dumps({
                 "explanation_text": f"We are checking your symptoms to rule out conditions like {target_diag}.",
-                "reassurance": "Your vital signs are within stable ranges.",
+                "reassurance": "Your doctor is reviewing your symptoms and test results.",
                 "warnings": ["Please seek immediate medical attention if you experience difficulty breathing or chest pain."]
             })
             

@@ -28,10 +28,10 @@ class VitalsExtractor:
         text_lower = text.lower()
 
         # BP
-        bp_match = re.search(r'\b(?:bp|blood\s+pressure)\s*(?:is|of|was|be|at)?\s*(\d{2,3}\s*/\s*\d{2,3})\b', text_lower)
+        bp_match = re.search(r'\b(?:bp|blood\s+pressure)\s*(?:is|of|was|be|at|reads?)?\s*(\d{2,3}\s*(?:/|over)\s*\d{2,3})\b', text_lower)
         if bp_match:
             results["bp"] = VitalObservation(
-                value=bp_match.group(1).replace(" ", ""),
+                value="/".join(re.findall(r'\d{2,3}', bp_match.group(1))),
                 unit="mmHg",
                 qualitative=None,
                 source="examination",

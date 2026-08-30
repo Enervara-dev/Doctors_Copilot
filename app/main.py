@@ -17,7 +17,11 @@ Module/Component: API Core
 """
 
 import os
-os.environ["HF_HUB_OFFLINE"] = "1"
+
+# Hugging Face hub runs offline by default so a warm deployment never reaches the
+# network on startup. Models must be in the local cache first: set
+# HF_HUB_OFFLINE=0 for the initial download of the pyannote and ECAPA weights.
+os.environ.setdefault("HF_HUB_OFFLINE", "1")
 
 from fastapi import FastAPI, status
 from fastapi.middleware.cors import CORSMiddleware

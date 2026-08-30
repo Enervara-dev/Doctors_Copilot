@@ -32,12 +32,22 @@ class SpeechBrainBackend(SpeakerEmbeddingBackend):
         
         t0 = time.perf_counter()
         
-        # Load pre-trained model weights
-        self.model = EncoderClassifier.from_hparams(
-            source="speechbrain/spkrec-ecapa-voxceleb",
-            savedir="pretrained_models/spkrec-ecapa-voxceleb",
-            run_opts={"device": self.device}
-        )
+        # Load pre-trained model weights.
+        # LocalStrategy.COPY is required on Windows: SpeechBrain's default SYMLINK
+        # strategy needs privileges the service does not have, and its fallback leaves
+        # behind text files containing the cache path instead of the real weights.
+        from_hparams_kwargs = {
+            "source": "speechbrain/spkrec-ecapa-voxceleb",
+            "savedir": "pretrained_models/spkrec-ecapa-voxceleb",
+            "run_opts": {"device": self.device},
+        }
+        try:
+            from speechbrain.utils.fetching import LocalStrategy
+            from_hparams_kwargs["local_strategy"] = LocalStrategy.COPY
+        except ImportError:
+            pass  # older SpeechBrain releases copy by default
+
+        self.model = EncoderClassifier.from_hparams(**from_hparams_kwargs)
         
         load_time = (time.perf_counter() - t0) * 1000.0
         logger.info(f"SpeechBrainBackend: Loaded model in {load_time:.1f}ms. Performing model warming...")

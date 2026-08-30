@@ -9,6 +9,7 @@ Part of the Clinical Intelligence workspace layout. Handles logic, routines, or 
 Module/Component: Clinical Intelligence
 """
 
+import hashlib
 import time
 import logging
 import asyncio
@@ -27,6 +28,21 @@ from clinical_intelligence.rule_engine.models import (
 )
 
 logger = logging.getLogger(__name__)
+
+
+
+def _cache_scope(session_id: str, context: str) -> str:
+    """
+    Cache scope for one session's LLM results.
+
+    Keying on session_id alone freezes SOAP notes, summaries and adaptive questions
+    for the whole TTL, so a consultation that later gains vitals or symptoms keeps
+    serving the note written before they were known. Folding a digest of the prompt
+    context into the key still collapses duplicate calls while the clinical picture
+    is unchanged, but regenerates as soon as it moves.
+    """
+    digest = hashlib.sha1((context or "").encode("utf-8")).hexdigest()[:12]
+    return f"{session_id}:{digest}"
 
 
 class LLMTaskManager:
@@ -69,6 +85,8 @@ class LLMTaskManager:
             state, candidates, red_flags, risk_factors, medications, missing_info, guidelines, graph_paths, is_complete
         )
 
+        cache_scope = _cache_scope(session_id, context_str)
+
         template_params = {
             "context": context_str,
             "stage": stage,
@@ -105,7 +123,7 @@ class LLMTaskManager:
             res_json, _ = await self.orchestrator.execute_prompt(
                 prompt_id="emergency_escalation_v1",
                 template_params=template_params,
-                cache_key=f"emergency:{session_id}",
+                cache_key=f"emergency:{cache_scope}",
                 hallucination_guard=hallucination_guard
             )
             
@@ -137,7 +155,7 @@ class LLMTaskManager:
             results["needs_human_review"] = True
 
             # Load cached background tasks if available
-            aq_cached = session_cache.get(f"adap:{session_id}")
+            aq_cached = session_cache.get(f"adap:{cache_scope}")
             if aq_cached and "questions" in aq_cached:
                 results["llm_adaptive_questions"] = [
                     AdaptiveQuestionItem(
@@ -150,26 +168,26 @@ class LLMTaskManager:
                     for q in aq_cached["questions"]
                 ]
 
-            de_cached = session_cache.get(f"diff:{session_id}")
+            de_cached = session_cache.get(f"diff:{cache_scope}")
             if de_cached and "explanations" in de_cached:
                 results["llm_differential_explanations"] = de_cached.get("explanations", {})
 
-            ir_cached = session_cache.get(f"inve:{session_id}")
+            ir_cached = session_cache.get(f"inve:{cache_scope}")
             if ir_cached:
                 models, _ = ResponseFormatter.format_investigations(ir_cached)
                 results["llm_recommended_investigations"] = models
 
-            cs_cached = session_cache.get(f"clin:{session_id}")
+            cs_cached = session_cache.get(f"clin:{cache_scope}")
             if cs_cached:
                 model, _ = ResponseFormatter.format_clinical_summary(cs_cached)
                 results["llm_clinical_summary"] = model
 
-            soap_cached = session_cache.get(f"soap:{session_id}")
+            soap_cached = session_cache.get(f"soap:{cache_scope}")
             if soap_cached:
                 model, _ = ResponseFormatter.format_soap(soap_cached)
                 results["llm_soap_notes"] = model
 
-            pe_cached = session_cache.get(f"pati:{session_id}")
+            pe_cached = session_cache.get(f"pati:{cache_scope}")
             if pe_cached:
                 model, _ = ResponseFormatter.format_patient_explanation(pe_cached)
                 results["llm_patient_explanation"] = model
@@ -283,7 +301,7 @@ class LLMTaskManager:
         res_json, _ = await self.orchestrator.execute_prompt(
             prompt_id=prompt_id,
             template_params=template_params,
-            cache_key=f"{task_id[:4].lower()}:{session_id}",
+            cache_key=f"{task_id[:4].lower()}:{_cache_scope(session_id, template_params.get('context', ''))}",
             hallucination_guard=hallucination_guard,
             answered_questions=answered
         )

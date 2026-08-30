@@ -198,6 +198,14 @@ class ClinicalReasoningEngine:
         current_medications: List[str] = state_data.get("current_medications", []) or []
         allergies: List[str] = state_data.get("allergies", []) or []
         family_history = state_data.get("family_history", []) or []
+        # Social history (smoking, alcohol, immobility ...) is carried on the state as
+        # structured risk_factors; flatten the present ones into the text blob the
+        # risk-factor rules match their social_history source_field against.
+        social_history = " | ".join(
+            str(rf.get("name", "")) if isinstance(rf, dict) else str(rf)
+            for rf in (state_data.get("risk_factors", []) or [])
+            if not isinstance(rf, dict) or str(rf.get("present", True)).lower() not in ("false", "none")
+        )
 
         # Build alias map for red-flag canonical matching
         alias_map = _build_alias_map(rules.symptoms)
@@ -261,6 +269,10 @@ class ClinicalReasoningEngine:
             current_medications=current_medications,
             allergies=allergies,
             family_history=family_history,
+            social_history=social_history,
+            vital_signs=vital_signs,
+            age=age,
+            gender=gender,
             tracer=tracer,
         )
 
@@ -555,26 +567,6 @@ class ClinicalReasoningEngine:
 
             if debug_diagnostics:
                 debug_diagnostics.llm_telemetry = llm_telemetry_summary
-
-            from clinical_intelligence.core.container import container
-            from clinical_intelligence.workflow.protocols import ISessionRepository, ISessionManager
-            try:
-                repo = container.resolve(ISessionRepository)
-                session = repo.load(session_id)
-                if session and "telemetry" in session.audit_metadata:
-                    manager = container.resolve(ISessionManager)
-                    stats = manager.get_statistics()
-                    
-                    wf_telemetry = session.audit_metadata["telemetry"]
-                    # Update count fields from manager stats
-                    wf_telemetry.active_session_count = stats.get("active_sessions", 0)
-                    wf_telemetry.idle_session_count = stats.get("idle_sessions", 0)
-                    wf_telemetry.archived_session_count = stats.get("total_sessions", 0) - stats.get("active_sessions", 0)
-                    
-                    if debug_diagnostics:
-                        debug_diagnostics.workflow_telemetry = wf_telemetry
-            except Exception:
-                pass
 
         # ── 15. Assemble Final Result ─────────────────────────────────────
         result = ClinicalReasoningResult(

@@ -110,7 +110,20 @@ class ContextBuilder:
 
         # Category 5: Risk Factors & Vitals
         vitals = state.get("vital_signs", {})
-        vital_strs = [f"{k}={v}" for k, v in vitals.items() if v]
+        vital_strs = []
+        for name, obs in (vitals or {}).items():
+            if not obs:
+                continue
+            if isinstance(obs, dict):
+                # Render the observation, not the whole record: a raw dict dump burns the
+                # context budget and reads poorly to both the model and the clinician.
+                reading = obs.get("value") or obs.get("qualitative")
+                if not reading:
+                    continue
+                unit = obs.get("unit") or ""
+                vital_strs.append(f"{name}={reading} {unit}".strip())
+            else:
+                vital_strs.append(f"{name}={obs}")
         if vital_strs:
             lines.append(f"Vitals: {', '.join(vital_strs)}")
 

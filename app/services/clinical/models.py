@@ -124,6 +124,8 @@ class ClinicalState(BaseModel):
     duration: Optional[str] = None
     severity: Optional[str] = None
     medical_history: List[str] = Field(default_factory=list)
+    family_history: List[Dict[str, Optional[Any]]] = Field(default_factory=list)
+    risk_factors: List[Dict[str, Optional[Any]]] = Field(default_factory=list)
     current_medications: List[str] = Field(default_factory=list)
     allergies: List[str] = Field(default_factory=list)
     vital_signs: VitalSigns = Field(default_factory=VitalSigns)

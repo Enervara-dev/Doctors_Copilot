@@ -141,7 +141,13 @@ class TestSpeakerVerification(unittest.TestCase):
         np.testing.assert_array_almost_equal(voice.running_std_dev[:3], [0.5, 1.0, 1.5])
 
     def test_speaker_verification_and_persistence(self):
-        """Test verification mapping updates, locks, and persistent identification."""
+        """
+        Voice profiles are keyed by diarization cluster, not by the proposed role.
+
+        verify() must not adopt `proposed_role` as the identity: that label is the
+        unverified guess this layer exists to check. It returns the cluster whose
+        voice profile the audio matched; the alignment layer maps clusters to roles.
+        """
         # Setup doctor voice embedding
         doctor_samples = np.random.normal(0, 0.1, 16000)
         doctor_samples[0] = 5.0  # Force mock backend to output first element as 5.0
@@ -153,14 +159,18 @@ class TestSpeakerVerification(unittest.TestCase):
             self.session_id, doctor_segment, proposed_role="doctor", raw_speaker="Speaker_0"
         )
         self.assertEqual(res_type, VerificationResult.VERIFIED)
-        self.assertEqual(matched_spk, "doctor")
+        self.assertEqual(matched_spk, "Speaker_0", "identity must follow the cluster, not the proposed role")
         self.assertEqual(similarity, 1.0)
 
         # 2. Subsequent matching turns updates registry
+        from app.services.speaker_alignment import speaker_alignment_service
+        speaker_alignment_service._session_mappings[self.session_id] = {
+            "Speaker_0": "doctor", "Speaker_1": "patient", "Speaker_2": "attender",
+        }
         for idx in range(1, 4):
             # Check stability mappings lock in
             self.service._process_verified_mapping(
-                self.session_id, raw_speaker="Speaker_0", matched_spk="doctor", similarity=0.98,
+                self.session_id, raw_speaker="Speaker_0", matched_spk="Speaker_0", similarity=0.98,
                 telemetry=MagicMock()
             )
 
@@ -177,14 +187,14 @@ class TestSpeakerVerification(unittest.TestCase):
         res_type, similarity, matched_spk = self.service.verify(
             self.session_id, patient_segment, proposed_role="patient", raw_speaker="Speaker_1"
         )
-        self.assertEqual(res_type, VerificationResult.VERIFIED)
-        self.assertEqual(matched_spk, "patient")
-        self.assertEqual(similarity, 1.0)
+        self.assertEqual(res_type, VerificationResult.UNKNOWN,
+                         "a voice matching no profile is new, not a confirmed role")
+        self.assertEqual(matched_spk, "Speaker_1")
 
         # Directly verify the similarity between the registered Doctor and Patient embeddings is negative
         registry = voice_registry_manager.get_registry(self.session_id)
-        doc_emb = registry.doctor.average_embedding
-        pat_emb = registry.patient.average_embedding
+        doc_emb = registry.clusters["Speaker_0"].average_embedding
+        pat_emb = registry.clusters["Speaker_1"].average_embedding
         sim = cosine_similarity(doc_emb, pat_emb)
         self.assertLess(sim, 0.0)
 

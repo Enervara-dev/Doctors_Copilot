@@ -71,6 +71,8 @@ class SessionVoiceRegistry:
         self.patient: Optional[RegisteredVoice] = None
         self.attender: Optional[RegisteredVoice] = None
         self.unknowns: Dict[str, RegisteredVoice] = {}  # Key: Unknown1, Unknown2, etc.
+        # Voice profiles keyed by diarization cluster label (Speaker_0, Speaker_1, ...)
+        self.clusters: Dict[str, RegisteredVoice] = {}
 
     def get_registered_voices(self) -> List[RegisteredVoice]:
         """Returns all currently active registered voices (clears expired Unknowns first)."""
@@ -83,6 +85,7 @@ class SessionVoiceRegistry:
         if self.attender:
             voices.append(self.attender)
         voices.extend(self.unknowns.values())
+        voices.extend(self.clusters.values())
         return voices
 
     def expire_inactive_unknowns(self) -> None:
@@ -134,6 +137,26 @@ class SessionVoiceRegistry:
                 extra={"session_id": self.session_id, "overwritten_speaker_id": oldest_key}
             )
             return voice
+
+
+    def register_voice_for_cluster(self, cluster_id: str, embedding: np.ndarray, timestamp: float) -> RegisteredVoice:
+        """
+        Registers (or returns) a voice profile keyed by its diarization cluster.
+
+        Identity is acoustic and belongs to the cluster; the clinical role is decided
+        separately by the alignment layer from what the speaker actually said. Keeping
+        the two apart stops an early mislabel from being locked in as a voice identity.
+        """
+        existing = self.clusters.get(cluster_id)
+        if existing is not None:
+            return existing
+        voice = RegisteredVoice(cluster_id, "UNKNOWN", embedding, timestamp)
+        self.clusters[cluster_id] = voice
+        logger.info(
+            f"VoiceRegistry: Created voice profile for cluster {cluster_id}.",
+            extra={"session_id": self.session_id, "cluster_id": cluster_id}
+        )
+        return voice
 
 
 class VoiceRegistryManager:

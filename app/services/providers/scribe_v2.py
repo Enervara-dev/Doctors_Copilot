@@ -29,6 +29,8 @@ class ScribeV2Provider(BaseSTTProvider):
         self._event_seq_counter = 0
         self._is_connected = False
         self._commit_requested = False
+        # Whether the provider asked for word-level timings on this connection.
+        self._expects_timestamps = "include_timestamps=true" in self.ws_url
         
         # Mock mode attributes
         self._mock_buffer_bytes = 0
@@ -201,6 +203,18 @@ class ScribeV2Provider(BaseSTTProvider):
                     "confidence": 0.90
                 }
             elif msg_type in ("committed_transcript", "committed_transcript_with_timestamps"):
+                # ElevenLabs emits every commit twice when include_timestamps=true:
+                # once as `committed_transcript` (no word timings) and once as
+                # `committed_transcript_with_timestamps`. Treating both as final
+                # published the same turn twice, and the untimestamped copy forced the
+                # aligner down its character-rate estimation path, which smears
+                # sentences across speaker boundaries. Honour only the timestamped
+                # variant while timestamps are requested.
+                if self._expects_timestamps and msg_type == "committed_transcript":
+                    logger.debug(
+                        "Scribe V2: Skipping untimestamped duplicate of a committed transcript."
+                    )
+                    return {"type": "ignored"}
                 return {
                     "type": "committed",
                     "text": data.get("text", ""),
