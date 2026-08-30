@@ -19,7 +19,7 @@ from app.utils.logging import logger
 class ScribeV2Provider(BaseSTTProvider):
     """
     STT Provider implementation for ElevenLabs Scribe V2 streaming Speech-to-Text.
-    Supports secure WebSocket streaming, automatic reconnects, and a mock development fallback.
+    Supports secure WebSocket streaming with automatic reconnects.
     """
     def __init__(self, api_key: str, mode: str = "development"):
         self.api_key = api_key
@@ -31,10 +31,6 @@ class ScribeV2Provider(BaseSTTProvider):
         self._commit_requested = False
         # Whether the provider asked for word-level timings on this connection.
         self._expects_timestamps = "include_timestamps=true" in self.ws_url
-        
-        # Mock mode attributes
-        self._mock_buffer_bytes = 0
-        self._mock_chunk_count = 0
 
     @property
     def commit_requested(self) -> bool:
@@ -50,12 +46,6 @@ class ScribeV2Provider(BaseSTTProvider):
 
     async def connect(self) -> None:
         """Establishes connection to the transcription service."""
-        if self.mode == "development" and not self.api_key:
-            logger.info("Scribe V2: Initializing in DEVELOPMENT MOCK mode (No API Key).")
-            self._is_connected = True
-            return
-
-        # Production / Real connection flow
         await self._connect_with_retry()
 
     async def _connect_with_retry(self) -> None:
@@ -118,12 +108,6 @@ class ScribeV2Provider(BaseSTTProvider):
             logger.warning("Scribe V2: Cannot send audio, connection inactive. Retrying reconnect...")
             await self._connect_with_retry()
 
-        if self.mode == "development" and not self.api_key:
-            # Mock mode: accumulate stats
-            self._mock_buffer_bytes += len(chunk)
-            self._mock_chunk_count += 1
-            return
-
         # Pack and send over WebSocket (base64 JSON wrapper)
         try:
             base64_str = base64.b64encode(chunk).decode("utf-8")
@@ -143,9 +127,6 @@ class ScribeV2Provider(BaseSTTProvider):
         self._commit_requested = True
         if not self._is_connected:
             return
-        if self.mode == "development" and not self.api_key:
-            return
-            
         try:
             payload = {
                 "message_type": "input_audio_chunk",
@@ -159,37 +140,6 @@ class ScribeV2Provider(BaseSTTProvider):
 
     async def receive(self) -> dict:
         """Receives real-time transcriptions/metadata from the provider."""
-        if self.mode == "development" and not self.api_key:
-            # Simulated transcription delivery loop
-            await asyncio.sleep(1.0)  # mimic response interval
-            
-            if self._mock_chunk_count > 0 or self._commit_requested:
-                self._mock_chunk_count = 0
-                mock_text = f"Mock transcription text for chunk {self._event_seq_counter}"
-                # If commit was requested, force is_committed = True
-                is_committed = self._commit_requested or (self._event_seq_counter % 2 == 1)
-                
-                words_list = []
-                if is_committed:
-                    words = mock_text.split()
-                    # Each chunk is 1 second, simulate words within that offset
-                    start_offset = float(self._event_seq_counter) * 1.0
-                    word_duration = 1.0 / max(1, len(words))
-                    for i, w in enumerate(words):
-                        words_list.append({
-                            "text": w,
-                            "start": start_offset + (i * word_duration),
-                            "end": start_offset + ((i + 1) * word_duration)
-                        })
-                
-                return {
-                    "type": "committed" if is_committed else "partial",
-                    "text": mock_text,
-                    "confidence": 0.95,
-                    "words": words_list
-                }
-            return {"type": "ignored"}
-
         # Real receiver loop
         try:
             msg = await self._websocket.recv()

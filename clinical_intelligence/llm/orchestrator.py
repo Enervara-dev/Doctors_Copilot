@@ -15,7 +15,7 @@ import logging
 from typing import Any, Dict, List, Optional, Tuple
 
 from clinical_intelligence.prompts.registry import PromptRegistry, PromptDefinition
-from clinical_intelligence.llm.providers import BaseLLMProvider, GeminiProvider, OpenAIProvider, MockLLMProvider
+from clinical_intelligence.llm.providers import BaseLLMProvider, GeminiProvider, OpenAIProvider
 from clinical_intelligence.validators.schema_validator import JSONSchemaValidator
 from clinical_intelligence.validators.response_validator import ClinicalResponseValidator
 from clinical_intelligence.validators.hallucination_guard import HallucinationGuard
@@ -80,7 +80,6 @@ class LLMOrchestrator:
         self.openai = OpenAIProvider(
             DEFAULT_OPENAI_MODEL, temperature=DEFAULT_TEMPERATURE, max_tokens=MAX_RESPONSE_TOKENS
         )
-        self.mock_llm = MockLLMProvider("mock-model")
 
         # Telemetry metrics counters
         self.total_requests = 0
@@ -147,12 +146,20 @@ class LLMOrchestrator:
         if OPENAI_API_KEY and self.openai.health():
             active_candidates.append(self.openai)
             
-        if active_candidates:
-            # Route to provider with highest success rate, breaking ties with lowest average latency
-            active_candidates.sort(key=lambda p: (-p.rolling_success_rate, p.average_latency))
-            providers_chain = active_candidates + [self.mock_llm]
-        else:
-            providers_chain = [self.mock_llm]
+        if not active_candidates:
+            # No configured, healthy provider. Report it rather than substituting
+            # generated-looking text: a caller that cannot tell a real answer from a
+            # canned one cannot use either safely.
+            logger.warning(
+                f"No healthy LLM provider available for prompt '{prompt_id}'. "
+                f"Returning no result."
+            )
+            return None, {"prompt_id": prompt_id, "status": "unavailable",
+                          "reason": "no_healthy_provider"}
+
+        # Route to provider with highest success rate, breaking ties with lowest average latency
+        active_candidates.sort(key=lambda p: (-p.rolling_success_rate, p.average_latency))
+        providers_chain = active_candidates
 
         active_provider = providers_chain[0]
         retry_count = 0
@@ -225,16 +232,13 @@ class LLMOrchestrator:
                     active_provider = providers_chain[1]
                     self.provider_switches += 1
 
-        # Fallback to Mock LLM if all API retries failed
+        # Every provider failed. The result stays empty: substituting templated text
+        # here produced output indistinguishable from a real answer in the same
+        # response fields, which is worse than returning nothing.
         if parsed_json is None:
-            logger.error(f"All LLM API retries failed for prompt '{prompt_id}'. Falling back to MockLLMProvider.")
-            try:
-                raw_text = await self.mock_llm.generate(prompt_text, schema=prompt_def.expected_json_schema)
-                _, parsed_json = JSONSchemaValidator.validate(raw_text, prompt_def.expected_json_schema.get("required"))
-                active_provider = self.mock_llm
-            except Exception as ex:
-                logger.critical(f"MockLLMProvider fallback failed: {ex}")
-                parsed_json = None
+            logger.error(
+                f"All LLM providers failed for prompt '{prompt_id}'. Returning no result."
+            )
 
         latency_ms = (time.perf_counter() - start_time) * 1000.0
         val_time = (time.perf_counter() - val_start) * 1000.0 if val_start > 0 else 0.0
@@ -242,6 +246,9 @@ class LLMOrchestrator:
         # Telemetry updates
         telemetry = {
             "prompt_execution_id": execution_id,
+            # "ok" or "unavailable" — the caller must be able to tell an answer from
+            # the absence of one, now that nothing is substituted on failure.
+            "status": "ok" if parsed_json is not None else "unavailable",
             "model": active_provider.model_name,
             "provider": active_provider.__class__.__name__,
             "provider_name": active_provider.__class__.__name__,

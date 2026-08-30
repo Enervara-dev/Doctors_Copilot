@@ -16,7 +16,7 @@ from typing import Any, Dict, List
 from clinical_intelligence.vector_store.store import ClinicalVectorStore
 from clinical_intelligence.rag.retriever import ClinicalGuidelinesRetriever
 from clinical_intelligence.llm.context_builder import ContextBuilder
-from clinical_intelligence.llm.providers import MockLLMProvider
+from clinical_intelligence.llm.providers import GeminiProvider
 from clinical_intelligence.llm.orchestrator import LLMOrchestrator, LLMResultCache
 from clinical_intelligence.llm.task_manager import LLMTaskManager
 from clinical_intelligence.llm.session_manager import LLMSessionManager
@@ -76,8 +76,13 @@ class TestHybridIntelligence(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(stage, "Assessment")
         self.assertEqual(progress, 85)
 
-    async def test_llm_orchestrator_failovers(self) -> None:
-        """Verify provider failover falls back gracefully to MockLLMProvider."""
+    async def test_llm_orchestrator_reports_unavailable(self) -> None:
+        """
+        With no healthy provider the orchestrator returns nothing.
+
+        It used to substitute MockLLMProvider text here, which reached the caller in
+        the same fields as a real answer and could not be told apart from one.
+        """
         res_json, telemetry = await self.orchestrator.execute_prompt(
             prompt_id="adaptive_questions_v1",
             template_params={
@@ -87,10 +92,10 @@ class TestHybridIntelligence(unittest.IsolatedAsyncioTestCase):
                 "question_limit": 2
             }
         )
-        self.assertIsNotNone(res_json)
-        self.assertIn("questions", res_json)
+        self.assertIsNone(res_json, "no provider answered, so there must be no result")
+        self.assertEqual(telemetry.get("status"), "unavailable")
         self.assertIsNotNone(telemetry)
-        self.assertIn("provider", telemetry)
+        self.assertIn("prompt_id", telemetry)
 
     def test_orchestrator_caching(self) -> None:
         """Verify compound caching hit overrides work correctly."""
@@ -139,7 +144,7 @@ class TestHybridIntelligence(unittest.IsolatedAsyncioTestCase):
 
     async def test_provider_circuit_breaker(self) -> None:
         """Verify that provider circuit breaker opens on successive failures."""
-        provider = MockLLMProvider("mock")
+        provider = GeminiProvider("gemini-2.5-flash")
         self.assertTrue(provider.health())
         
         # Simulate consecutive failures
@@ -171,11 +176,14 @@ class TestHybridIntelligence(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(result.session_id, "test_session_123")
         self.assertTrue(result.pipeline_version == "1.0.0")
         
-        # Check LLM results properties
-        self.assertIsNotNone(result.llm_adaptive_questions)
-        self.assertIsNotNone(result.llm_differential_explanations)
-        self.assertIsNotNone(result.llm_recommended_investigations)
-        self.assertIsNotNone(result.llm_clinical_summary)
+        # The enrichment fields are populated only when a provider actually answered.
+        # Without one they stay empty and llm_status says so explicitly, rather than
+        # carrying templated text indistinguishable from a real answer.
+        self.assertIn(result.llm_status, ("ok", "unavailable", "disabled"))
+        if result.llm_status != "ok":
+            self.assertEqual(result.llm_adaptive_questions, [])
+            self.assertIsNone(result.llm_clinical_summary)
+            self.assertIsNone(result.llm_soap_notes)
         
         # Verify Telemetry inclusion in DebugDiagnostics
         self.assertIsNotNone(result.debug_diagnostics)

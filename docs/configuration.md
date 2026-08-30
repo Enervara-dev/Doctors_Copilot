@@ -23,8 +23,8 @@ Variables read **without** the prefix: `GEMINI_API_KEY`, `OPENAI_API_KEY`, `NEO4
 
 | Variable | Default | Effect |
 |---|---|---|
-| `CLINICAL_COPILOT_STT_PROVIDER_MODE` | `development` | `production` uses ElevenLabs. `development` returns mock text **only when the API key is also empty** |
-| `CLINICAL_COPILOT_DIARIZATION_MODE` | `development` | `production` runs pyannote. `development` assigns speakers by `timestamp % 30` and **will mis-attribute speech** |
+| `CLINICAL_COPILOT_STT_PROVIDER_MODE` | `production` | Must be `production`. Any other value raises at startup — the development mock was removed |
+| `CLINICAL_COPILOT_DIARIZATION_MODE` | `production` | Must be `production`. Any other value raises at startup — the development mock was removed |
 
 A validator (`config.py:118-128`) raises at startup if a `production` mode is set without
 its key: `ELEVENLABS_API_KEY` for STT, `HUGGINGFACE_TOKEN` for diarization.
@@ -158,5 +158,6 @@ CLINICAL_COPILOT_ELEVENLABS_API_KEY=<key>
 CLINICAL_COPILOT_STT_PROVIDER_MODE=production
 ```
 
-Optional: `GEMINI_API_KEY` (LLM enrichment; falls back to templated text without it),
-`NEO4J_*` (graph enrichment; degrades cleanly without it).
+Optional: `GEMINI_API_KEY` (LLM enrichment; without it `llm_status` reports
+`unavailable` and the `llm_*` fields stay empty), `NEO4J_*` (graph enrichment; degrades
+cleanly without it).

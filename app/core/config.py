@@ -76,8 +76,6 @@ class Settings(BaseSettings):
         return int(self.BUFFER_CHUNK_DURATION_SEC * self.AUDIO_SAMPLE_RATE * self.bytes_per_sample)
 
     # Session Management
-    MAX_ACTIVE_SESSIONS: int = 1000
-    SESSION_TIMEOUT_SEC: int = 300  # Automatically close connection after inactivity
     MAX_BUFFER_MEM_LIMIT_BYTES: int = 10 * 1024 * 1024  # 10MB safety threshold per connection
     
     # Security / Auth
@@ -98,11 +96,11 @@ class Settings(BaseSettings):
 
     # ElevenLabs / STT Configurations
     ELEVENLABS_API_KEY: str = ""
-    STT_PROVIDER_MODE: str = "development"  # choices: "development", "production"
+    STT_PROVIDER_MODE: str = "production"  # only supported value
 
     # Pyannote / Diarization Configurations
     HUGGINGFACE_TOKEN: str = ""
-    DIARIZATION_MODE: str = "development"  # choices: "development", "production"
+    DIARIZATION_MODE: str = "production"  # only supported value
     DIARIZATION_DEBUG: bool = False
     # Minimum speakers expected in diarization (default to 2 for doctor-patient consultation)
     DIARIZATION_MIN_SPEAKERS: int = 2
@@ -117,16 +115,42 @@ class Settings(BaseSettings):
 
     @model_validator(mode="after")
     def validate_provider_mode(self) -> 'Settings':
-        if self.STT_PROVIDER_MODE == "production":
-            if not self.ELEVENLABS_API_KEY or self.ELEVENLABS_API_KEY.strip() == "":
-                raise ValueError(
-                    "ELEVENLABS_API_KEY must be configured when STT_PROVIDER_MODE is set to 'production'."
-                )
-        if self.DIARIZATION_MODE == "production":
-            if not self.HUGGINGFACE_TOKEN or self.HUGGINGFACE_TOKEN.strip() == "":
-                raise ValueError(
-                    "HUGGINGFACE_TOKEN must be configured when DIARIZATION_MODE is set to 'production'."
-                )
+        """
+        Both providers are production-only.
+
+        The former 'development' modes returned synthetic data through the same code
+        path as real output: fabricated transcript text, and speaker labels assigned by
+        a `timestamp % 30` cycle. The diarization mock in particular was actively
+        harmful, because clinical extraction is gated on the speaker label, so wrong
+        labels silently discarded symptoms, history and medications with no error.
+        Both are gone. A missing credential now fails at startup instead of degrading
+        into fabricated data.
+        """
+        if self.STT_PROVIDER_MODE != "production":
+            raise ValueError(
+                f"CLINICAL_COPILOT_STT_PROVIDER_MODE must be 'production' "
+                f"(got {self.STT_PROVIDER_MODE!r}). The development mock was removed: it "
+                f"emitted placeholder transcript text indistinguishable from real output."
+            )
+        if not self.ELEVENLABS_API_KEY or not self.ELEVENLABS_API_KEY.strip():
+            raise ValueError(
+                "CLINICAL_COPILOT_ELEVENLABS_API_KEY must be configured. There is no "
+                "offline transcription fallback."
+            )
+        if self.DIARIZATION_MODE != "production":
+            raise ValueError(
+                f"CLINICAL_COPILOT_DIARIZATION_MODE must be 'production' "
+                f"(got {self.DIARIZATION_MODE!r}). The development mock was removed: it "
+                f"assigned speakers on a fixed time cycle, and because clinical "
+                f"extraction is gated on the speaker label, those fabricated labels "
+                f"silently dropped clinical facts."
+            )
+        if not self.HUGGINGFACE_TOKEN or not self.HUGGINGFACE_TOKEN.strip():
+            raise ValueError(
+                "CLINICAL_COPILOT_HUGGINGFACE_TOKEN must be configured (with the "
+                "pyannote/speaker-diarization-3.1 licence accepted). There is no "
+                "offline diarization fallback."
+            )
         return self
 
     class Config:

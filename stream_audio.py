@@ -15,9 +15,12 @@ import json
 import urllib.request
 import audioop
 
-WS_URL = "ws://127.0.0.1:8000/v1/streaming/audio"
+import os as _os
+PORT = _os.environ.get("DEMO_PORT", "8000")
+WS_URL = f"ws://127.0.0.1:{PORT}/v1/streaming/audio"
 TOKEN = "production-secure-token-change-me"
-SESSION_ID = "consultation-xyz-123"
+import os
+SESSION_ID = os.environ.get("DEMO_SESSION_ID", "consultation-xyz-123")
 
 async def stream_audio(file_path: str, role: str):
     print(f"Opening WAV file: {file_path}", flush=True)
@@ -96,7 +99,7 @@ async def stream_audio(file_path: str, role: str):
     max_attempts = 30
     for attempt in range(1, max_attempts + 1):
         try:
-            url = f"http://127.0.0.1:8000/v1/transcripts/{SESSION_ID}"
+            url = f"http://127.0.0.1:{PORT}/v1/transcripts/{SESSION_ID}"
             with urllib.request.urlopen(url) as response:
                 transcripts = json.loads(response.read().decode())
                 if transcripts:
@@ -109,7 +112,7 @@ async def stream_audio(file_path: str, role: str):
                     # Fetch clinical state
                     print("\nRetrieving clinical state from Clinical State Engine...", flush=True)
                     try:
-                        state_url = f"http://127.0.0.1:8000/v1/clinical-state/{SESSION_ID}"
+                        state_url = f"http://127.0.0.1:{PORT}/v1/clinical-state/{SESSION_ID}"
                         with urllib.request.urlopen(state_url) as res_state:
                             state = json.loads(res_state.read().decode())
                             print("\n================ CLINICAL STATE ================ ", flush=True)
@@ -121,7 +124,7 @@ async def stream_audio(file_path: str, role: str):
                     # Fetch clinical reasoning
                     print("\nRetrieving clinical reasoning from Clinical Reasoning Engine...", flush=True)
                     try:
-                        reasoning_url = f"http://127.0.0.1:8000/v1/clinical-reasoning/{SESSION_ID}"
+                        reasoning_url = f"http://127.0.0.1:{PORT}/v1/clinical-reasoning/{SESSION_ID}"
                         with urllib.request.urlopen(reasoning_url) as res_reasoning:
                             res = json.loads(res_reasoning.read().decode())
                             if "message" in res:

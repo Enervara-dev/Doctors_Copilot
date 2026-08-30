@@ -32,7 +32,6 @@ class ClinicalStateEngine:
     def __init__(self):
         self._states: Dict[str, ClinicalState] = {}
         self._provenance: Dict[str, Dict[str, Any]] = {}
-        self._metadata: Dict[str, Dict[str, Any]] = {}
         self._lock = RLock()
         self.pipeline = ClinicalProcessingPipeline()
         self.name_extractor = NameExtractor()
@@ -54,7 +53,6 @@ class ClinicalStateEngine:
         with self._lock:
             self._states.pop(session_id, None)
             self._provenance.pop(session_id, None)
-            self._metadata.pop(session_id, None)
             context_manager.clear_session(session_id)
             logger.info("ClinicalStateEngine: Cleared state", extra={"session_id": session_id})
 
@@ -92,99 +90,6 @@ class ClinicalStateEngine:
             "transcript": event.transcript or "",
             "version": version
         }
-
-    def _assess_significant_changes(self, session_id: str, old_state: Dict[str, Any], new_state: Dict[str, Any], transcript: str) -> None:
-        if session_id not in self._metadata:
-            self._metadata[session_id] = {
-                "pending_updates": 0,
-                "last_version": 0,
-                "significant_change_reasons": [],
-                "complete": False
-            }
-        
-        meta = self._metadata[session_id]
-        meta["pending_updates"] += 1
-        
-        reasons = set(meta["significant_change_reasons"])
-        
-        # 1. New Diagnosis
-        old_diags = set(old_state.get("diagnosis_tentative", [])).union(set(old_state.get("medical_history", [])))
-        new_diags = set(new_state.get("diagnosis_tentative", [])).union(set(new_state.get("medical_history", [])))
-        if new_diags - old_diags:
-            reasons.add("New Diagnosis")
-            
-        # 2. New Medication
-        old_meds = {m.get("name").lower() for m in old_state.get("treatment_plan", {}).get("medicines", [])}.union(
-            {m.lower() for m in old_state.get("current_medications", [])}
-        )
-        new_meds = {m.get("name").lower() for m in new_state.get("treatment_plan", {}).get("medicines", [])}.union(
-            {m.lower() for m in new_state.get("current_medications", [])}
-        )
-        if new_meds - old_meds:
-            reasons.add("New Medication")
-            
-        # 3. Emergency Finding
-        emergency_terms = {"chest pain", "shortness of breath", "breathing issue", "difficulty breathing"}
-        active_symptoms = {s.get("name").lower() for s in new_state.get("symptoms", []) if s.get("status") == "Active"}
-        if emergency_terms.intersection(active_symptoms):
-            reasons.add("Emergency Finding")
-            
-        # 4. Significant Clinical Update
-        old_sym_status = {s.get("name").lower(): s.get("status") for s in old_state.get("symptoms", [])}
-        new_sym_status = {s.get("name").lower(): s.get("status") for s in new_state.get("symptoms", [])}
-        for name, status in new_sym_status.items():
-            if name in old_sym_status and old_sym_status[name] != status:
-                reasons.add("Significant Clinical Update")
-                
-        # 5. Consultation Completed
-        if len(new_state.get("follow_up", [])) > len(old_state.get("follow_up", [])):
-            reasons.add("Consultation Completed")
-            
-        meta["significant_change_reasons"] = list(reasons)
-        
-        # Assess state completeness
-        has_patient = new_state.get("patient_info", {}).get("age") is not None or new_state.get("patient_info", {}).get("gender") is not None
-        has_cc = len(new_state.get("chief_complaint", [])) > 0
-        has_findings = (
-            len(new_state.get("symptoms", [])) > 0 or 
-            len(new_state.get("diagnosis_tentative", [])) > 0 or 
-            new_state.get("vital_signs", {}).get("bp") is not None
-        )
-        meta["complete"] = bool(has_patient and has_cc and has_findings)
-
-    # Expose helper methods for LLM Triggering
-    def has_significant_state_change(self, session_id: str) -> bool:
-        with self._lock:
-            meta = self._metadata.get(session_id)
-            return bool(meta and len(meta.get("significant_change_reasons", [])) > 0)
-
-    def clinical_state_complete(self, session_id: str) -> bool:
-        with self._lock:
-            meta = self._metadata.get(session_id)
-            return bool(meta and meta.get("complete", False))
-
-    def ready_for_llm(self, session_id: str) -> bool:
-        with self._lock:
-            meta = self._metadata.get(session_id)
-            if not meta:
-                return False
-            return bool(
-                len(meta.get("significant_change_reasons", [])) > 0 or 
-                meta.get("complete", False) or 
-                meta.get("pending_updates", 0) >= 3
-            )
-
-    def pending_updates_count(self, session_id: str) -> int:
-        with self._lock:
-            meta = self._metadata.get(session_id)
-            return meta.get("pending_updates", 0) if meta else 0
-
-    def significant_change_reason(self, session_id: str) -> Optional[str]:
-        with self._lock:
-            meta = self._metadata.get(session_id)
-            if meta and meta.get("significant_change_reasons"):
-                return ", ".join(meta["significant_change_reasons"])
-            return None
 
     def update_state_from_event(self, event: TranscriptEvent) -> ClinicalState:
         """
@@ -695,7 +600,6 @@ class ClinicalStateEngine:
             new_compare = {k: v for k, v in new_state_dump.items() if k != "version"}
             if old_compare != new_compare:
                 state.version += 1
-                self._assess_significant_changes(event.session_id, old_compare, new_compare, text)
 
             # Push WS updates if active
             try:

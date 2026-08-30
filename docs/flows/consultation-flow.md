@@ -107,8 +107,8 @@ timeline (`diarization_worker.py:548-575`).
 A **final global pass** re-runs diarization over the whole session and **overwrites the
 timeline**, relabelling by chronological first appearance (`diarization_worker.py:473-500`).
 
-When `DIARIZATION_MODE=development`, `_get_mock_segments` assigns speakers by
-`timestamp % 30` (`diarization_worker.py:92-105`). Status: **Mocked**.
+There is no development mode: the mock segment generator was removed and
+`DIARIZATION_MODE` must be `production` or startup fails.
 
 ## 5. Alignment — who said what
 
@@ -207,8 +207,8 @@ happens when a loop is already running — so a missing install fails under the 
 passing from a script.
 
 Every response passes `JSONSchemaValidator` and `HallucinationGuard`, which discards
-diagnoses not present in the rule-engine output. On failure the orchestrator falls back to
-`MockLLMProvider` (**Mocked** — templated text in the same response fields).
+diagnoses not present in the rule-engine output. On failure nothing is substituted: the `llm_*` fields stay empty and `llm_status`
+reports `"unavailable"`.
 
 ## Failure modes actually implemented
 
@@ -219,7 +219,7 @@ diagnoses not present in the rule-engine output. On failure the orchestrator fal
 | Session buffer > 10 MB | Buffer cleared, `InvalidAudioFrameError` raised |
 | ElevenLabs connect fails | 5 retries with backoff, then `ConnectionError` |
 | Neo4j unreachable | Logged, graph enrichment disabled, reasoning continues |
-| Gemini fails / rate-limited | Circuit breaker after 3 failures, 30 s cool-down, fall back to `MockLLMProvider` |
+| Gemini fails / rate-limited | Circuit breaker after 3 failures, 30 s cool-down; `llm_*` fields left empty and `llm_status` set to `unavailable` |
 | LLM returns invalid JSON | Schema validation fails, fallback used |
 | Unsupported diagnosis from LLM | Discarded by `HallucinationGuard` |
 | torch/pyannote missing in production mode | **Startup aborts** — the server does not run |

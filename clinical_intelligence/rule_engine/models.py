@@ -519,6 +519,11 @@ class ClinicalReasoningResult(BaseModel):
     llm_patient_explanation: Optional[PatientExplanationModel] = None
     llm_emergency_escalation: Optional[EmergencyEscalationModel] = None
     llm_explainability: Optional[LLMExplainability] = None
+    # "ok" when the enrichment ran, "unavailable" when no provider answered, and
+    # "disabled" when the layer is switched off. The llm_* fields above are empty in
+    # both non-ok cases: there is no templated stand-in any more, so a consumer can
+    # tell "the model said nothing" from "the model said this".
+    llm_status: str = "ok"
     needs_human_review: bool = False
 
     # Decision support recommendations (added for Milestone 2 Module 7)

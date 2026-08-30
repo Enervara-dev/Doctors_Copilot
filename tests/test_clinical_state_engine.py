@@ -316,22 +316,5 @@ class TestClinicalStateEngine(unittest.TestCase):
         self.assertEqual(prov["patient_info.patient_name"]["event_id"], "ev1")
         self.assertEqual(prov["patient_info.patient_name"]["transcript"], "Hello, my name is John.")
 
-    def test_llm_trigger_readiness_checks(self):
-        session_id = "test-session-123"
-
-        # Check initial readiness
-        self.assertFalse(clinical_state_engine.ready_for_llm(session_id))
-        self.assertEqual(clinical_state_engine.pending_updates_count(session_id), 0)
-
-        # 1. New Diagnosis should trigger ready
-        e1 = TranscriptEvent(
-            session_id=session_id, sequence_number=1, role="patient", speaker_id="patient",
-            transcript="I came in for diabetes check.", is_final=True, is_partial=False, event_id="ev1", timestamp=100.0
-        )
-        state = clinical_state_engine.update_state_from_event(e1)
-        self.assertTrue(clinical_state_engine.has_significant_state_change(session_id))
-        self.assertEqual(clinical_state_engine.significant_change_reason(session_id), "New Diagnosis")
-        self.assertTrue(clinical_state_engine.ready_for_llm(session_id))
-
 if __name__ == "__main__":
     unittest.main()

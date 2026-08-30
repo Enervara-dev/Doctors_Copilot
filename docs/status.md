@@ -32,7 +32,7 @@ Status labels are defined in [README.md](README.md#how-to-read-this).
 | Duplicate-commit suppression | **Implemented** | `scribe_v2.py:203-215` — ElevenLabs emits each commit twice; the untimestamped copy is dropped |
 | Partial transcripts | **Implemented** | `scribe_v2.py:196-201`; surfaced only when `include_partials=true` |
 | Worker lifecycle reconciliation | **Implemented** | `stt_manager.py:68-108` |
-| `STT_PROVIDER_MODE=development` | **Mocked** | `scribe_v2.py:119,144,160` — emits `"Mock transcription text for chunk N"`. Only active when the API key is **also** empty |
+| `STT_PROVIDER_MODE=development` | **Removed** | The mock branches were deleted. `STT_PROVIDER_MODE` must be `production`; any other value raises at startup (`app/core/config.py` `validate_provider_mode`) |
 
 ## Diarization and speaker identification
 
@@ -51,7 +51,7 @@ See [flows/speaker-identification.md](flows/speaker-identification.md).
 | Cluster-level role assignment | **Implemented** | `speaker_alignment.py`, `assign_cluster_roles` — keyword evidence pooled per speaker cluster |
 | ECAPA voice embeddings | **Implemented** | `speaker_verification/backend.py` |
 | Voice profile matching, confirmation counters, locking | **Implemented** | `speaker_verification/speaker_verification.py`, `voice_registry.py` |
-| `DIARIZATION_MODE=development` | **Mocked** | `diarization_worker.py:92-105` — speakers assigned by `timestamp % 30`. **Will mis-attribute speech**, and because extraction is role-gated, facts are silently dropped |
+| `DIARIZATION_MODE=development` | **Removed** | `_get_mock_speaker` / `_get_mock_segments` deleted and the inference branch collapsed to pyannote only. `DIARIZATION_MODE` must be `production`; any other value raises at startup |
 | Speaker verification correcting a wrong label | **Partially implemented** | The mechanism exists (`_process_verified_mapping`) but requires ≥3 confirmations and a voice match; not observed correcting a real mislabel in this codebase's test material |
 
 ## Clinical extraction
@@ -68,7 +68,7 @@ See [flows/speaker-identification.md](flows/speaker-identification.md).
 | Provenance tracking | **Implemented** | `state_engine._record_provenance`, exposed at `/v1/clinical-state/{id}/provenance` |
 | Section detection | **Implemented** | `extractors/section_detector.py` |
 | State validation | **Implemented** | `clinical/validator.py`, called from `state_engine.py:193` |
-| Change-significance signals | **Placeholder** | `state_engine.py:156-175` — computed, never read by production code; only `tests/` call them |
+| Change-significance signals | **Removed** | `has_significant_state_change`, `clinical_state_complete`, `ready_for_llm`, `pending_updates_count` and `significant_change_reason` had no production callers. They and the `_assess_significant_changes` computation that fed them (write-only once the readers went) were deleted |
 | Dictionary coverage | **Partially implemented** | 17 symptoms, 17 diseases, 17 drugs, 12 procedures, 10 anatomy, 7 family, 2 negations — small enough to be a demo vocabulary |
 
 ## Clinical reasoning (rule engine)
@@ -119,7 +119,7 @@ See [flows/speaker-identification.md](flows/speaker-identification.md).
 | Result caching keyed on session + context digest | **Implemented** | `llm/task_manager.py:_cache_scope`, 300 s TTL |
 | Hallucination guard | **Implemented** | `validators/hallucination_guard.py` — discards diagnoses not present in the rule output |
 | Response schema validation | **Implemented** | `validators/schema_validator.py` |
-| **Fallback text presented as model output** | **Mocked** | `llm/providers.py` `MockLLMProvider` — on provider failure, returns templated strings (`"Patient is presenting with symptoms suggestive of {diagnosis}."`). These populate the same `llm_*` response fields as real output, **with no field marking them as fallback** |
+| Provider failure | **Implemented** | `MockLLMProvider` and the automatic fallback were removed. When no provider answers, the `llm_*` fields stay empty and `llm_status` reports `"unavailable"` (or `"disabled"` when the layer is off). Per-prompt telemetry carries the same `status` |
 | OpenAI channel | **Partially implemented** | `OpenAIProvider` exists and is constructed; `OPENAI_API_KEY` is not set in `.env`, so it is never exercised |
 | Live Gemini output | **Unknown at time of writing** | The configured key returned HTTP 429 (quota exhausted) throughout verification. The request/response wiring is unit-tested; end-to-end model output was not observable |
 

@@ -9,12 +9,12 @@ An enterprise-grade, low-latency, and deterministic clinical assistant system de
 ### Quick start
 
 ```powershell
-.un.ps1
+.
+un.ps1
 ```
 
 Starts the API, serves the console, waits for the models to load and opens the browser.
-`Ctrl+C` stops both. Options: `-Mode development` (skip pyannote, fast startup),
-`-ApiPort`, `-UiPort`, `-NoBrowser`.
+`Ctrl+C` stops both. Options: `-ApiPort`, `-UiPort`, `-NoBrowser`.
 
 ### Manual
 
@@ -24,7 +24,6 @@ fails when it loads the diarizer.
 
 ```powershell
 # 1. API — first start takes ~40 s while pyannote and ECAPA load
-$env:CLINICAL_COPILOT_DIARIZATION_MODE = "production"
 .venv\Scripts\python.exe -m uvicorn app.main:app --host 127.0.0.1 --port 8000
 
 # 2. Console (separate terminal) — the mic needs a secure context, so serve it
@@ -93,8 +92,8 @@ Settings live in `.env` (prefix `CLINICAL_COPILOT_`). The ones that change behav
 
 | Setting | Effect |
 |---|---|
-| `DIARIZATION_MODE` | `production` uses pyannote for real speaker identity; `development` uses a mock time-cycle and **will mis-attribute speech** |
-| `STT_PROVIDER_MODE` | `production` uses ElevenLabs Scribe; `development` emits placeholder text |
+| `DIARIZATION_MODE` | Must be `production`. The development mock was removed; any other value fails at startup |
+| `STT_PROVIDER_MODE` | Must be `production`. The development mock was removed; any other value fails at startup |
 | `ENABLE_RED_FLAG_ALERTS` | when `False`, red flags are detected but stripped from the API response |
 | `ENABLE_LLM` | turns the LLM enrichment layer on/off |
 

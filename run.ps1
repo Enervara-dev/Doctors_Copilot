@@ -4,12 +4,9 @@
 
 .EXAMPLE
     .\run.ps1                      # production diarization, opens the console
-    .\run.ps1 -Mode development    # no pyannote (mock speakers) - faster startup
     .\run.ps1 -ApiPort 8001 -NoBrowser
 #>
 param(
-    [ValidateSet("production", "development")]
-    [string]$Mode = "production",
     [int]$ApiPort = 8000,
     [int]$UiPort = 5500,
     [switch]$NoBrowser
@@ -38,14 +35,12 @@ function Stop-Port([int]$Port) {
 Stop-Port $ApiPort
 Stop-Port $UiPort
 
-$env:CLINICAL_COPILOT_DIARIZATION_MODE = $Mode
-
-Write-Host "Starting API on http://127.0.0.1:$ApiPort  (diarization: $Mode)" -ForegroundColor Cyan
+Write-Host "Starting API on http://127.0.0.1:$ApiPort" -ForegroundColor Cyan
 $api = Start-Process -FilePath $python `
     -ArgumentList "-m", "uvicorn", "app.main:app", "--host", "127.0.0.1", "--port", $ApiPort `
     -WorkingDirectory $root -PassThru -NoNewWindow
 
-# Production mode loads pyannote + ECAPA before it serves anything (~40 s cold).
+# pyannote + ECAPA load before anything is served (~40 s cold).
 Write-Host "Waiting for the models to load..." -NoNewline
 $ready = $false
 foreach ($i in 1..90) {

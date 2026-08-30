@@ -48,9 +48,10 @@ carries a status label:
    cleanup — see [status.md](status.md#dormant-code) for what was removed and the two
    files that were kept after closer inspection.
 
-3. **The LLM layer usually serves templated fallback text, not model output.** When the
-   provider fails, `MockLLMProvider` returns canned strings that are presented in the same
-   fields as real model output, with no marker distinguishing them.
+3. **The LLM layer no longer substitutes anything on failure.** `MockLLMProvider` and
+   the automatic fallback were removed. When no provider answers, the `llm_*` fields are
+   empty and `llm_status` says `"unavailable"`, so a consumer can tell "the model said
+   nothing" from "the model said this".
    See [integrations/README.md](integrations/README.md#google-gemini).
 
 ## How the facts here were established

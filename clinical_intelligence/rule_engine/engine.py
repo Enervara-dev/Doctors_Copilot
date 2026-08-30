@@ -458,6 +458,7 @@ class ClinicalReasoningEngine:
         graph_meta = self._get_graph_metadata()
 
         # ── 14.7 Coordinate Hybrid Clinical Intelligence LLM Tasks (Module 3) ──
+        llm_status = "ok" if ENABLE_LLM else "disabled"
         llm_res = {
             "llm_adaptive_questions": [],
             "llm_differential_explanations": {},
@@ -499,6 +500,19 @@ class ClinicalReasoningEngine:
                 )
             except Exception as lex:
                 logger.warning(f"ClinicalReasoningEngine: LLMTaskManager failed: {lex}")
+                llm_status = "unavailable"
+            else:
+                # Every enrichment field empty means no provider answered. Say so
+                # explicitly rather than returning silent nulls.
+                if not any(
+                    llm_res.get(k)
+                    for k in (
+                        "llm_adaptive_questions", "llm_differential_explanations",
+                        "llm_recommended_investigations", "llm_clinical_summary",
+                        "llm_soap_notes", "llm_patient_explanation",
+                    )
+                ):
+                    llm_status = "unavailable"
 
         # Update DebugDiagnostics with LLM Telemetry
         llm_telemetry_summary = None
@@ -594,6 +608,7 @@ class ClinicalReasoningEngine:
             llm_patient_explanation=llm_res.get("llm_patient_explanation"),
             llm_emergency_escalation=llm_res.get("llm_emergency_escalation"),
             llm_explainability=llm_res.get("llm_explainability"),
+            llm_status=llm_status,
             needs_human_review=llm_res.get("needs_human_review", False),
             pipeline_version="1.0.0",
             retriever_version=self._retriever.store.version,

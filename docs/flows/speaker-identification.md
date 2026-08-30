@@ -41,10 +41,9 @@ A **final global pass** (`diarization_worker.py:473-500`) re-diarizes the whole 
 **completely overwrites** the timeline, assigning `Speaker_0/1/2` by chronological first
 appearance. This discards the incrementally matched labels.
 
-**Development** (`DIARIZATION_MODE=development`): `_get_mock_segments` cycles speakers by
-`timestamp % 30` — 0–5 s `Speaker_0`, 5–12 s `Speaker_1`, 12–18 s `Speaker_0`,
-18–22 s `Speaker_2`, then `Speaker_0`. Status: **Mocked**. Clusters do not correspond to
-real people, so role assignment cannot be correct.
+There is no development mode. The mock generator that cycled speakers by `timestamp % 30`
+was removed: its clusters did not correspond to real people, and because extraction is
+role-gated it silently discarded clinical facts. `DIARIZATION_MODE` must be `production`.
 
 ## Layer 2 — timeline
 
@@ -171,7 +170,7 @@ crosstalk. It is not a measure of clinical accuracy on real consultations, which
 
 | Limitation | Status |
 |---|---|
-| `DIARIZATION_MODE=development` mis-attributes speech and silently drops clinical facts | **Mocked** |
+| Diarization has no offline mode; pyannote and its model cache are mandatory | **Implemented** |
 | Role assignment relies on English keyword lists; a consultation using different phrasing scores 0 on both sides and falls back to positional defaults | **Partially implemented** |
 | The final global pass discards incremental label continuity | **Implemented** as written; a deliberate re-label |
 | Overlapping speech is not separated — pyannote assigns one label per range | **Not implemented** |

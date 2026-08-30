@@ -86,51 +86,6 @@ def _pcm_bytes_to_tensor(pcm_bytes: bytes):
 
 
 # ---------------------------------------------------------------------------
-# Mock segments (development / offline mode only)
-# ---------------------------------------------------------------------------
-
-def _get_mock_speaker(timestamp: float) -> str:
-    cycle = timestamp % 30.0
-    if cycle < 5.0:
-        return "Speaker_0"
-    elif cycle < 12.0:
-        return "Speaker_1"
-    elif cycle < 18.0:
-        return "Speaker_0"
-    elif cycle < 22.0:
-        return "Speaker_2"
-    else:
-        return "Speaker_0"
-
-
-def _get_mock_segments(window_start: float, window_end: float) -> list:
-    segments = []
-    step = 0.1
-    current_speaker = None
-    segment_start = None
-
-    t = window_start
-    while t < window_end + 0.05:
-        current_t = min(t, window_end)
-        speaker = _get_mock_speaker(current_t)
-
-        if current_speaker is None:
-            current_speaker = speaker
-            segment_start = current_t
-        elif speaker != current_speaker:
-            segments.append({"start": segment_start, "end": current_t, "label": current_speaker})
-            current_speaker = speaker
-            segment_start = current_t
-
-        t += step
-
-    if current_speaker is not None and segment_start < window_end:
-        segments.append({"start": segment_start, "end": window_end, "label": current_speaker})
-
-    return segments
-
-
-# ---------------------------------------------------------------------------
 # Per-session state
 # ---------------------------------------------------------------------------
 
@@ -386,7 +341,7 @@ class DiarizationWorkerManager:
 
     async def _process_latest_window(self, session_id: str, force: bool = False, global_pass: bool = False) -> None:
         """
-        Extracts the audio window, runs Pyannote (or mock) inference off-thread,
+        Extracts the audio window, runs Pyannote inference off-thread,
         then updates the SpeakerTimeline. If global_pass is True, runs globally over
         the entire session audio and overwrites the timeline with optimal global clustering.
         """
@@ -450,18 +405,9 @@ class DiarizationWorkerManager:
             # Run inference
             # ----------------------------------------------------------------
             try:
-                use_production = (
-                    settings.DIARIZATION_MODE == "production"
-                    and bool(settings.HUGGINGFACE_TOKEN)
+                local_segments = await asyncio.to_thread(
+                    self._run_pyannote_pipeline, session_id, window_audio, window_start
                 )
-                if use_production:
-                    local_segments = await asyncio.to_thread(
-                        self._run_pyannote_pipeline, session_id, window_audio, window_start
-                    )
-                else:
-                    local_segments = await asyncio.to_thread(
-                        _get_mock_segments, window_start, window_end
-                    )
             except Exception:
                 logger.error(
                     "DiarizationWorker: Diarization execution failed",

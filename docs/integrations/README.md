@@ -8,7 +8,7 @@ never imported.
 | ElevenLabs Scribe v2 | Speech-to-text | Yes, for real transcription | **Implemented** |
 | Hugging Face + pyannote | Diarization models | Yes in production mode | **Implemented** |
 | SpeechBrain ECAPA | Voice embeddings | No — degrades | **Implemented** |
-| Google Gemini | LLM enrichment | No — falls back | **Implemented**, output usually **Mocked** |
+| Google Gemini | LLM enrichment | No — reports unavailable | **Implemented** |
 | Neo4j | Knowledge graph | No — degrades | **Implemented**, unpopulated |
 | Pinecone | — | No | **Not implemented** |
 | OpenAI | Alternative LLM | No | **Partially implemented** |
@@ -40,10 +40,9 @@ The client requests `include_timestamps=true`, so only the timestamped variant i
 Retry: 5 attempts, exponential backoff from 1 s (`scribe_v2.py:63-110`). Exhausting them
 raises `ConnectionError`.
 
-**Development mock:** when `mode == "development"` **and** the API key is empty, `receive()`
-returns `"Mock transcription text for chunk N"` on a 1 s cadence with synthesised word
-timings. A non-empty key means the real service is used regardless of mode. Status:
-**Mocked**.
+**No offline mode.** The development mock that returned `"Mock transcription text for
+chunk N"` was removed. `STT_PROVIDER_MODE` must be `production` and a key must be present,
+or startup fails — there is no offline transcription fallback.
 
 ---
 
@@ -121,26 +120,25 @@ but not in certifi's bundle, and every call would otherwise fail with
 Resilience: circuit breaker opens after 3 failures for 30 s (`config/runtime.py:35`);
 `RETRY_LIMIT = 3`.
 
-### The fallback is not distinguishable in the response
+### Failure is explicit
 
-On any failure the orchestrator falls back to `MockLLMProvider`
-(`llm/orchestrator.py:232`), which returns **templated strings** built from the leading
-diagnosis:
+There is no fallback provider. `MockLLMProvider` and the automatic
+fallback-on-failure were removed: they returned templated strings into the same
+`llm_*` response fields real output uses, with nothing marking the source, so a
+consumer could not tell a model answer from a canned one.
 
-- `"Patient is presenting with symptoms suggestive of {diagnosis}."`
-- `"Suspected {diagnosis}."`
-- `"Conservative management, monitoring, and follow-up for symptoms of {diagnosis}."`
+When no provider answers:
 
-These populate `llm_soap_notes`, `llm_clinical_summary`, `llm_adaptive_questions` and the
-rest — **the same fields real model output would use**. No field in the response marks the
-source. A consumer cannot tell model output from fallback text.
+- the `llm_*` fields stay empty (`null` / `[]` / `{}`)
+- `llm_status` is `"unavailable"` (or `"disabled"` when `ENABLE_LLM` is off)
+- the per-prompt telemetry carries `status: "unavailable"`
+- `execute_prompt` returns `None` rather than a substituted payload
 
-Status: **Mocked** (the fallback), and it is what is served whenever the provider is
-unavailable.
+The rule-engine output — diagnoses, red flags, investigations, scores — is unaffected;
+it is deterministic and does not depend on the LLM.
 
-**At the time of writing**, the configured key returned HTTP 429 (quota exhausted) on every
-call, so all `llm_*` output observed was fallback text. Whether the key works under a
-different quota is **Unknown / not determinable from the current code**.
+**At the time of writing** the configured key returned HTTP 429 (quota exhausted), so
+`llm_status` reads `"unavailable"` on every run here.
 
 ---
 

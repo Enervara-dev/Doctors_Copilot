@@ -218,13 +218,14 @@ Observed from a live response and matching `ClinicalReasoningResult`:
 | `llm_patient_explanation` | object \| null | |
 | `llm_emergency_escalation` | object \| null | |
 | `llm_explainability` | object | `generated_from_prompt_id`, `prompt_version`, `citations` |
+| `llm_status` | string | `"ok"`, `"unavailable"` (no provider answered) or `"disabled"`. In the non-`ok` cases every `llm_*` field above is empty |
 | `needs_human_review` | bool | |
 | `decision_support` | object \| null | |
 | `pipeline_version`, `retriever_version`, `prompt_version`, `provider_version` | string | |
 
-> **`llm_*` fields do not indicate their source.** When the provider fails, the same fields
-> are populated by `MockLLMProvider` with templated text. Nothing in the response
-> distinguishes model output from fallback text. See
+> **`llm_status`** reports the enrichment outcome: `"ok"`, `"unavailable"` (no provider
+> answered) or `"disabled"`. In the non-`ok` cases every `llm_*` field above is empty —
+> nothing is substituted. See
 > [../integrations/README.md](../integrations/README.md#google-gemini).
 
 ### Performance

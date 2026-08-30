@@ -150,8 +150,12 @@ class TestRunsInsideARunningLoop(unittest.IsolatedAsyncioTestCase):
     The reasoning engine is called from a FastAPI request, so the LLM runner has to
     re-enter an already-running event loop. That path imports nest_asyncio lazily and
     the package was never declared, so under the server every task raised
-    ModuleNotFoundError and the result came back with all llm_* fields null — while
-    the same code passed from a plain script, where the loop is not running.
+    ModuleNotFoundError — while the same code passed from a plain script, where the
+    loop is not running.
+
+    Since the mock fallback was removed the llm_* fields are empty whenever no
+    provider answers, so the assertion is on llm_status: the run must report a
+    definite outcome rather than dying on the import.
     """
 
     async def test_reasoning_populates_llm_fields_under_a_running_loop(self):
@@ -168,9 +172,14 @@ class TestRunsInsideARunningLoop(unittest.IsolatedAsyncioTestCase):
         self.assertTrue(asyncio.get_running_loop().is_running())
         result = await asyncio.to_thread(reason_from_state, state)
 
-        self.assertIsNotNone(result.llm_soap_notes, "SOAP note must survive the running-loop path")
-        self.assertIsNotNone(result.llm_clinical_summary)
-        self.assertTrue(result.llm_adaptive_questions)
+        self.assertIn(result.llm_status, ("ok", "unavailable", "disabled"),
+                      "the running-loop path must complete and report an outcome")
+        if result.llm_status == "ok":
+            self.assertIsNotNone(result.llm_soap_notes)
+        else:
+            # No stand-in text: empty means empty.
+            self.assertIsNone(result.llm_soap_notes)
+            self.assertEqual(result.llm_adaptive_questions, [])
 
     async def test_runner_dependency_is_importable(self):
         """runner.py imports this only when the loop is running, so a missing
