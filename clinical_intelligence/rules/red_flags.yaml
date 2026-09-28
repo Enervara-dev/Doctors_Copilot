@@ -150,8 +150,21 @@
   condition: Respiratory Failure
   severity: CRITICAL
   required_symptoms: []
+  # Respiratory failure is defined by gas exchange, so the measurement is the
+  # rule. Plain "shortness of breath" was listed here and is one of the
+  # commonest complaints in any clinic: it raised a CRITICAL alert on every
+  # breathless patient, and once red flags began pulling their own
+  # investigation pathway it was ordering urgent CTPA, D-dimer and ABG for
+  # cardiac chest pain.
+  #
+  # Breathlessness still reaches the clinician - it drives the differential and
+  # its investigations through the scorer. What it no longer does is declare
+  # respiratory failure without a single measurement.
+  #
+  # The four terms below cannot currently match anything: none has a canonical
+  # in symptoms.yaml. They are left in place as the rule's stated intent rather
+  # than silently deleted.
   any_of_symptoms:
-    - shortness of breath
     - severe breathlessness
     - worsening dyspnea
     - rapid breathing
@@ -181,13 +194,25 @@
   condition: Hypertensive Emergency
   severity: CRITICAL
   required_symptoms: []
+  # A hypertensive emergency is defined by the blood pressure plus end-organ
+  # involvement. Chest pain and shortness of breath were listed here and are
+  # neither: they are among the commonest presentations in any clinic, so this
+  # rule fired CRITICAL on every cardiac case with no BP ever measured - and
+  # pulled an URGENT CT brain along with it, via ct_brain's trigger list.
+  #
+  # The genuine case is not lost. When a BP is recorded above the thresholds
+  # below the rule still fires on the vital alone, symptoms or not. What is
+  # left here are the end-organ features that distinguish an emergency from
+  # ordinary hypertension.
+  # Confusion and altered mental status were here too and are no more specific
+  # than chest pain was: a septic 74-year-old raised a hypertensive-emergency
+  # alert and an urgent CT brain with no blood pressure ever measured. What
+  # remains is hypertensive encephalopathy proper - severe headache and visual
+  # disturbance - plus the BP path, which fires on the measurement alone
+  # whatever the patient's mental state.
   any_of_symptoms:
     - severe headache
     - vision changes
-    - chest pain
-    - shortness of breath
-    - confusion
-    - altered mental status
   vital_sign_criteria:
     - condition: bp_systolic_gt
       threshold: 180

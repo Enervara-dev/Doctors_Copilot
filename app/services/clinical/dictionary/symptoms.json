@@ -3,60 +3,294 @@
   "updated": "2026-07-04",
   "entries": {
     "symptom_headache": [
-      "headache", "head ache", "headaches", "head pounding", "pounding head", 
-      "head pain", "pain in head", "pounding in head", "head has been pounding", 
-      "head is pounding", "head was pounding"
+      "headache",
+      "head ache",
+      "headaches",
+      "head pounding",
+      "pounding head",
+      "head pain",
+      "pain in head",
+      "pounding in head",
+      "head has been pounding",
+      "head is pounding",
+      "head was pounding"
     ],
     "symptom_fever": [
-      "fever", "fevers", "high temperature", "running a temperature", "chills", "feeling hot", "feverish"
+      "fever",
+      "fevers",
+      "high temperature",
+      "running a temperature",
+      "chills",
+      "feeling hot",
+      "feverish",
+      "burning up",
+      "running a temperature"
     ],
     "symptom_cough": [
-      "cough", "coughs", "coughing", "coughing up", "coughing fits"
+      "cough",
+      "coughs",
+      "coughing",
+      "coughing up",
+      "coughing fits"
     ],
     "symptom_dizziness": [
-      "dizziness", "dizzy", "lightheaded", "light-headed", "room spinning", "spinning sensation"
+      "dizziness",
+      "dizzy",
+      "lightheaded",
+      "light-headed",
+      "room spinning",
+      "spinning sensation"
     ],
     "symptom_nausea": [
-      "nausea", "nauseous", "sick to my stomach", "feeling sick", "nauseated", 
-      "throwing up", "threw up", "throwing-up"
+      "nausea",
+      "nauseous",
+      "sick to my stomach",
+      "feeling sick",
+      "nauseated",
+      "throwing up",
+      "threw up",
+      "throwing-up"
     ],
     "symptom_vomiting": [
-      "vomiting", "vomit", "vomited", "heaving"
+      "vomiting",
+      "vomit",
+      "vomited",
+      "heaving"
     ],
     "symptom_fatigue": [
-      "fatigue", "fatigued", "tiredness", "exhaustion", "exhausted", "feeling weak", "weakness", "lethargic", "lethargy"
+      "fatigue",
+      "fatigued",
+      "tiredness",
+      "exhaustion",
+      "exhausted",
+      "feeling weak",
+      "weakness",
+      "lethargic",
+      "lethargy"
     ],
     "symptom_chest_pain": [
-      "chest pain", "chest pains", "pain in chest", "pain over chest", "tightness in chest", 
-      "pressure in chest", "chest discomfort", "heaviness in chest", "pain in my chest", 
+      "chest pain",
+      "chest pains",
+      "pain in chest",
+      "pain over chest",
+      "tightness in chest",
+      "pressure in chest",
+      "chest discomfort",
+      "heaviness in chest",
+      "pain in my chest",
       "pain in the chest"
     ],
     "symptom_shortness_of_breath": [
-      "shortness of breath", "short of breath", "difficulty breathing", "breathless", "cannot breathe", "trouble breathing", "hard to breathe"
+      "shortness of breath",
+      "short of breath",
+      "difficulty breathing",
+      "breathless",
+      "cannot breathe",
+      "trouble breathing",
+      "hard to breathe",
+      "cannot catch my breath",
+      "can not catch my breath",
+      "catch my breath",
+      "gasping for air",
+      "winded"
     ],
     "symptom_throat_dryness": [
-      "dry throat", "throat feels dry", "throat is dry", "dryness in throat", "throat dryness", "dry throat"
+      "dry throat",
+      "throat feels dry",
+      "throat is dry",
+      "dryness in throat",
+      "throat dryness",
+      "dry throat"
     ],
     "symptom_sore_throat": [
-      "sore throat", "throat is sore", "throat sore", "soreness in throat", "itchy throat", "scratchy throat"
+      "sore throat",
+      "throat is sore",
+      "throat sore",
+      "soreness in throat",
+      "itchy throat",
+      "scratchy throat"
     ],
     "symptom_throat_pain": [
-      "throat pain", "pain in throat", "throat hurts", "pain in my throat"
+      "throat pain",
+      "pain in throat",
+      "throat hurts",
+      "pain in my throat"
     ],
     "symptom_nasal_congestion": [
-      "nasal congestion", "stuffy nose", "congested nose", "blocked nose", "congestion"
+      "nasal congestion",
+      "stuffy nose",
+      "congested nose",
+      "blocked nose",
+      "congestion"
     ],
     "symptom_rhinorrhea": [
-      "rhinorrhea", "runny nose", "running nose", "nose running"
+      "rhinorrhea",
+      "runny nose",
+      "running nose",
+      "nose running"
     ],
     "symptom_chills": [
-      "chills", "feeling cold", "shivering", "rigors"
+      "chills",
+      "feeling cold",
+      "shivering",
+      "rigors"
     ],
     "symptom_body_aches": [
-      "body aches", "body ache", "aches all over", "muscle pain", "muscle ache", "muscle aches", "myalgia", "body hurts", "body is aching"
+      "body aches",
+      "body ache",
+      "aches all over",
+      "muscle pain",
+      "muscle ache",
+      "muscle aches",
+      "myalgia",
+      "body hurts",
+      "body is aching"
     ],
     "symptom_diarrhea": [
-      "diarrhea", "loose stools", "watery stools", "runny tummy"
+      "diarrhea",
+      "loose stools",
+      "watery stools",
+      "runny tummy"
+    ],
+    "symptom_facial_droop": [
+      "facial droop",
+      "face droop",
+      "face drooped",
+      "face is drooping",
+      "drooping face",
+      "one side of my face",
+      "face fell",
+      "facial weakness",
+      "face suddenly drooped",
+      "suddenly my face drooped",
+      "face has drooped"
+    ],
+    "symptom_slurred_speech": [
+      "slurred speech",
+      "speech is slurred",
+      "slurring",
+      "slurred words",
+      "speech sounds slurred",
+      "words are slurred"
+    ],
+    "symptom_speech_difficulty": [
+      "speech difficulty",
+      "difficulty speaking",
+      "trouble speaking",
+      "cannot speak properly",
+      "can't get my words out",
+      "trouble finding words",
+      "could not get my words out",
+      "words would not come out"
+    ],
+    "symptom_arm_weakness": [
+      "arm weakness",
+      "weak arm",
+      "arm feels weak",
+      "cannot lift my arm",
+      "can't lift my arm",
+      "weakness in my arm",
+      "arm went limp",
+      "arm suddenly went weak",
+      "sudden arm weakness",
+      "arm went numb and weak",
+      "numb and weak",
+      "arm feels numb"
+    ],
+    "symptom_sweating": [
+      "sweating",
+      "sweaty",
+      "am sweating",
+      "breaking out in a sweat",
+      "cold sweat",
+      "clammy",
+      "perspiring",
+      "drenched in sweat"
+    ],
+    "symptom_chest_tightness": [
+      "chest tightness",
+      "tightness in my chest",
+      "chest feels tight",
+      "tight chest",
+      "chest is tight",
+      "band around my chest"
+    ],
+    "symptom_chest_pressure": [
+      "chest pressure",
+      "pressure in my chest",
+      "chest feels heavy",
+      "heavy chest",
+      "weight on my chest",
+      "crushing feeling in my chest"
+    ],
+    "symptom_radiating_arm_pain": [
+      "radiating arm pain",
+      "pain down my arm",
+      "pain into my arm",
+      "pain going down my left arm",
+      "goes down my left arm",
+      "pain radiating to my arm",
+      "arm pain radiating"
+    ],
+    "symptom_jaw_pain": [
+      "jaw pain",
+      "pain in my jaw",
+      "jaw ache",
+      "aching jaw",
+      "jaw hurts"
+    ],
+    "symptom_confusion": [
+      "confusion",
+      "confused",
+      "disoriented",
+      "not making sense",
+      "muddled",
+      "not myself",
+      "cannot think straight",
+      "can not think straight",
+      "foggy"
+    ],
+    "symptom_rigors": [
+      "rigors",
+      "rigours",
+      "shaking chills",
+      "uncontrollable shivering",
+      "shaking uncontrollably",
+      "violent shivering"
+    ],
+    "symptom_vision_changes": [
+      "vision changes",
+      "blurred vision",
+      "blurry vision",
+      "double vision",
+      "vision is blurry",
+      "cannot see properly",
+      "can not see properly",
+      "spots in my vision",
+      "loss of vision",
+      "vision loss"
+    ],
+    "symptom_urticaria": [
+      "urticaria",
+      "hives",
+      "nettle rash",
+      "raised itchy rash",
+      "welts"
+    ],
+    "symptom_throat_swelling": [
+      "throat swelling",
+      "throat is swelling",
+      "throat closing",
+      "throat feels tight",
+      "swollen throat",
+      "tongue is swelling"
+    ],
+    "symptom_wheezing": [
+      "wheezing",
+      "wheeze",
+      "wheezy",
+      "whistling when i breathe",
+      "chest is whistling"
     ]
   }
 }

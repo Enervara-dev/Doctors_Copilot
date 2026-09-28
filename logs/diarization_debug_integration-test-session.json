@@ -1,6 +1,6 @@
 {
   "session_id": "integration-test-session",
-  "timestamp": 1783244732.061503,
+  "timestamp": 1790596409.3175006,
   "pyannote_segments": [
     {
       "start": 0.0,
@@ -36,7 +36,7 @@
   ],
   "final_events": [
     {
-      "event_id": "4e7e6558-5d55-4131-9eee-84f185719067",
+      "event_id": "60f37b06-45e5-478f-95c9-2b30181761f2",
       "sequence_number": 0,
       "speaker_id": "doctor",
       "transcript": "[Noise]",

@@ -121,6 +121,39 @@ class InvestigationRecommender:
                 tracer.increment_evaluated()
                 tracer.increment_matched()
 
+        # A fired red flag must bring its own investigation pathway.
+        #
+        # The loop above is driven by scored candidates, so an investigation is
+        # only offered when its disease cleared the confidence threshold. That
+        # left a real hole: a stroke red flag could fire on facial droop and
+        # slurred speech while the CT brain it names in `triggers` was never
+        # recommended, because ischaemic stroke had not scored as a candidate.
+        # A flag urgent enough to raise is urgent enough to act on.
+        for red_flag in red_flags:
+            for inv in self._rules:
+                if red_flag.flag_id not in inv.get("triggers", []):
+                    continue
+                inv_id = inv.get("id", "")
+                if inv_id in recommended:
+                    existing = recommended[inv_id]
+                    if _PRIORITY_RANK["URGENT"] < _PRIORITY_RANK[existing["priority"]]:
+                        existing["priority"] = "URGENT"
+                    existing["escalated_by_red_flag"] = True
+                    if red_flag.condition not in existing["for_conditions"]:
+                        existing["for_conditions"].append(red_flag.condition)
+                    continue
+
+                recommended[inv_id] = {
+                    "id": inv_id,
+                    "name": inv.get("name", inv_id),
+                    "priority": "URGENT",
+                    "reason": inv.get("rationale", "").strip(),
+                    "for_conditions": [red_flag.condition],
+                    "escalated_by_red_flag": True,
+                }
+                tracer.increment_evaluated()
+                tracer.increment_matched()
+
         # Sort: URGENT → HIGH → ROUTINE, then alphabetically
         result: List[InvestigationRecommendation] = []
         for inv_id, data in recommended.items():

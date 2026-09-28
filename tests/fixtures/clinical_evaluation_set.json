@@ -1,0 +1,324 @@
+{
+  "_comment": "The golden clinical evaluation set. Six consultations covering the four classes the Copilot has to get right: a normal low-risk visit, two high-risk emergencies, a genuinely ambiguous presentation, and two negative cases where the correct answer is silence. Expectations are structural - which flags, which urgent investigations, which symptoms - never model wording. Every value here was measured against the real engine, not predicted.",
+  "cases": [
+    {
+      "id": "normal_low_risk",
+      "category": "normal",
+      "description": "Ordinary self-limiting illness. The Copilot should stay quiet.",
+      "utterances": [
+        "I am a 29 year old female.",
+        "I have had a mild sore throat for two days.",
+        "I do not have any fever."
+      ],
+      "expect": {
+        "age": 29,
+        "gender": "Female",
+        "symptoms_present": [
+          "symptom_sore_throat"
+        ],
+        "symptoms_absent": [
+          "symptom_fever"
+        ],
+        "red_flags": [],
+        "primary_red_flags": [],
+        "urgent_investigations": [],
+        "forbid_red_flags": [
+          "acs_red_flag",
+          "stroke_red_flag",
+          "sepsis_red_flag"
+        ]
+      }
+    },
+    {
+      "id": "high_risk_cardiac",
+      "category": "high_risk",
+      "description": "The golden ACS presentation. STEMI should lead; stroke and sepsis must not appear.",
+      "utterances": [
+        "I am a 62 year old male. I have been having severe chest pain for two hours and I am sweating a lot.",
+        "I also feel short of breath and nauseous.",
+        "I take aspirin daily and I have high blood pressure and diabetes.",
+        "I do not have any fever."
+      ],
+      "expect": {
+        "age": 62,
+        "gender": "Male",
+        "symptoms_present": [
+          "symptom_chest_pain",
+          "symptom_shortness_of_breath",
+          "symptom_nausea",
+          "symptom_sweating"
+        ],
+        "symptoms_absent": [
+          "symptom_fever"
+        ],
+        "red_flags": [
+          "stemi_red_flag",
+          "acs_red_flag"
+        ],
+        "primary_red_flags": [
+          "stemi_red_flag"
+        ],
+        "urgent_investigations": [
+          "ecg_12lead",
+          "troponin"
+        ],
+        "forbid_red_flags": [
+          "stroke_red_flag",
+          "sepsis_red_flag",
+          "respiratory_failure_red_flag"
+        ],
+        "differential_contains": [
+          "unstable_angina",
+          "acs"
+        ],
+        "history": [
+          "Hypertension",
+          "Diabetes"
+        ],
+        "medications": [
+          "Aspirin"
+        ]
+      }
+    },
+    {
+      "id": "high_risk_stroke",
+      "category": "high_risk",
+      "description": "FAST-positive presentation. Stroke should lead and pull an urgent CT brain.",
+      "utterances": [
+        "I am a 70 year old male.",
+        "Suddenly my face drooped and I have slurred speech.",
+        "I have high blood pressure."
+      ],
+      "expect": {
+        "age": 70,
+        "gender": "Male",
+        "symptoms_present": [
+          "symptom_facial_droop",
+          "symptom_slurred_speech"
+        ],
+        "symptoms_absent": [],
+        "red_flags": [
+          "stroke_red_flag"
+        ],
+        "primary_red_flags": [
+          "stroke_red_flag"
+        ],
+        "urgent_investigations": [
+          "ct_brain"
+        ],
+        "forbid_red_flags": [
+          "acs_red_flag",
+          "stemi_red_flag"
+        ]
+      }
+    },
+    {
+      "id": "ambiguous_mixed",
+      "category": "ambiguous",
+      "description": "Cardiac and neurological features together. Both flags are correct; suppressing either would be the Copilot making a differential decision it has no basis for.",
+      "utterances": [
+        "I am a 66 year old male.",
+        "I have severe chest pain and my face suddenly drooped.",
+        "I have high blood pressure."
+      ],
+      "expect": {
+        "age": 66,
+        "gender": "Male",
+        "symptoms_present": [
+          "symptom_chest_pain",
+          "symptom_facial_droop"
+        ],
+        "symptoms_absent": [],
+        "red_flags": [
+          "acs_red_flag",
+          "stroke_red_flag"
+        ],
+        "primary_red_flags": [
+          "acs_red_flag",
+          "stroke_red_flag"
+        ],
+        "urgent_investigations": [
+          "ecg_12lead"
+        ],
+        "forbid_red_flags": [
+          "sepsis_red_flag"
+        ]
+      }
+    },
+    {
+      "id": "negative_explicit",
+      "category": "negative",
+      "description": "The patient denies the very symptoms that would raise alarm. Negation must hold.",
+      "utterances": [
+        "I am a 45 year old male.",
+        "I do not have any chest pain.",
+        "I do not have any fever."
+      ],
+      "expect": {
+        "age": 45,
+        "gender": "Male",
+        "symptoms_present": [],
+        "symptoms_absent": [
+          "symptom_chest_pain",
+          "symptom_fever"
+        ],
+        "red_flags": [],
+        "primary_red_flags": [],
+        "urgent_investigations": [],
+        "forbid_red_flags": [
+          "acs_red_flag",
+          "stemi_red_flag",
+          "sepsis_red_flag"
+        ]
+      }
+    },
+    {
+      "id": "risk_profile_only",
+      "category": "negative",
+      "description": "Comorbidity with no complaint. A risk profile is not a presentation - this is the regression for the red-flag demographics defect.",
+      "utterances": [
+        "I am a 68 year old male.",
+        "I have high blood pressure and diabetes."
+      ],
+      "expect": {
+        "age": 68,
+        "gender": "Male",
+        "symptoms_present": [],
+        "symptoms_absent": [],
+        "red_flags": [],
+        "primary_red_flags": [],
+        "urgent_investigations": [],
+        "forbid_red_flags": [
+          "acs_red_flag",
+          "stroke_red_flag",
+          "sepsis_red_flag",
+          "stemi_red_flag"
+        ],
+        "history": [
+          "Hypertension",
+          "Diabetes"
+        ]
+      }
+    },
+    {
+      "id": "realistic_acs_idiom",
+      "category": "high_risk",
+      "description": "A cardiac presentation in the words a patient actually uses. Nobody says 'chest pain' or 'diaphoresis'; the Copilot has to hear tightness, radiation and clamminess.",
+      "utterances": [
+        "I am a 58 year old man.",
+        "My chest feels really tight and the pain goes down my left arm.",
+        "I came over all clammy and felt sick.",
+        "I have high blood pressure and diabetes."
+      ],
+      "expect": {
+        "age": 58,
+        "gender": "Male",
+        "symptoms_present": [
+          "symptom_chest_tightness",
+          "symptom_radiating_arm_pain",
+          "symptom_sweating"
+        ],
+        "symptoms_absent": [],
+        "red_flags": [
+          "acs_red_flag"
+        ],
+        "primary_red_flags": [
+          "acs_red_flag"
+        ],
+        "urgent_investigations": [
+          "ecg_12lead",
+          "troponin"
+        ],
+        "forbid_red_flags": [
+          "stroke_red_flag",
+          "sepsis_red_flag"
+        ],
+        "differential_contains": [
+          "acs"
+        ],
+        "history": [
+          "Hypertension",
+          "Diabetes"
+        ]
+      }
+    },
+    {
+      "id": "anaphylaxis",
+      "category": "high_risk",
+      "description": "Time-critical and previously undetectable: none of hives, throat swelling or wheezing could be extracted before this milestone.",
+      "utterances": [
+        "I am a 32 year old female.",
+        "I have hives all over and my throat feels tight.",
+        "I am wheezing badly."
+      ],
+      "expect": {
+        "age": 32,
+        "gender": "Female",
+        "symptoms_present": [
+          "symptom_throat_swelling",
+          "symptom_urticaria",
+          "symptom_wheezing"
+        ],
+        "symptoms_absent": [],
+        "red_flags": [
+          "anaphylaxis_red_flag"
+        ],
+        "primary_red_flags": [
+          "anaphylaxis_red_flag"
+        ],
+        "urgent_investigations": [
+          "lactate"
+        ],
+        "forbid_red_flags": [
+          "acs_red_flag",
+          "stroke_red_flag"
+        ],
+        "differential_contains": [
+          "anaphylaxis"
+        ]
+      }
+    },
+    {
+      "id": "sepsis_realistic",
+      "category": "high_risk",
+      "description": "Idiomatic infection language - burning up, shaking uncontrollably, not myself - with the sepsis workup following from the flag.",
+      "utterances": [
+        "I am a 74 year old male.",
+        "I have been burning up and shaking uncontrollably.",
+        "I feel confused and not myself.",
+        "I have diabetes."
+      ],
+      "expect": {
+        "age": 74,
+        "gender": "Male",
+        "symptoms_present": [
+          "symptom_confusion",
+          "symptom_fever",
+          "symptom_rigors"
+        ],
+        "symptoms_absent": [],
+        "red_flags": [
+          "sepsis_red_flag"
+        ],
+        "primary_red_flags": [
+          "sepsis_red_flag"
+        ],
+        "urgent_investigations": [
+          "blood_cultures",
+          "lactate"
+        ],
+        "forbid_red_flags": [
+          "acs_red_flag",
+          "stroke_red_flag",
+          "hypertensive_crisis_red_flag"
+        ],
+        "differential_contains": [
+          "sepsis"
+        ],
+        "history": [
+          "Diabetes"
+        ]
+      }
+    }
+  ]
+}

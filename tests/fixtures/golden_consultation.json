@@ -1,0 +1,78 @@
+{
+  "_comment": "The first golden integration fixture. Utterances are in the exact shape the Doctor platform's TranscriptUtterance emits (doctor/types/transcript.ts): id, sequence, speaker, speakerLabel, text, startedAt, finalizedAt, status, confidence, provenance. An ACS presentation was chosen because it exercises every downstream stage - demographics, symptoms with duration and severity, past history, medication, a red flag, and investigation recommendations - and because its rule coverage is the strongest in diseases.yaml.",
+  "consultationId": "golden-acs-001",
+  "utterances": [
+    {
+      "id": "utt-001",
+      "sequence": 1,
+      "speaker": "DOCTOR",
+      "speakerLabel": "Doctor",
+      "text": "Good morning. What brings you in today?",
+      "startedAt": "2026-09-27T09:00:00.000Z",
+      "finalizedAt": "2026-09-27T09:00:03.000Z",
+      "status": "FINAL",
+      "confidence": 0.97,
+      "provenance": "SERVICE"
+    },
+    {
+      "id": "utt-002",
+      "sequence": 2,
+      "speaker": "PATIENT",
+      "speakerLabel": "Patient",
+      "text": "I am a 62 year old male. I have been having severe chest pain for two hours and I am sweating a lot.",
+      "startedAt": "2026-09-27T09:00:04.000Z",
+      "finalizedAt": "2026-09-27T09:00:12.000Z",
+      "status": "FINAL",
+      "confidence": 0.94,
+      "provenance": "SERVICE"
+    },
+    {
+      "id": "utt-003",
+      "sequence": 3,
+      "speaker": "PATIENT",
+      "speakerLabel": "Patient",
+      "text": "I also feel short of breath and nauseous.",
+      "startedAt": "2026-09-27T09:00:13.000Z",
+      "finalizedAt": "2026-09-27T09:00:17.000Z",
+      "status": "FINAL",
+      "confidence": 0.95,
+      "provenance": "SERVICE"
+    },
+    {
+      "id": "utt-004",
+      "sequence": 4,
+      "speaker": "DOCTOR",
+      "speakerLabel": "Doctor",
+      "text": "Do you take any regular medication, and do you have any medical conditions?",
+      "startedAt": "2026-09-27T09:00:18.000Z",
+      "finalizedAt": "2026-09-27T09:00:22.000Z",
+      "status": "FINAL",
+      "confidence": 0.96,
+      "provenance": "SERVICE"
+    },
+    {
+      "id": "utt-005",
+      "sequence": 5,
+      "speaker": "PATIENT",
+      "speakerLabel": "Patient",
+      "text": "I take aspirin daily and I have high blood pressure and diabetes.",
+      "startedAt": "2026-09-27T09:00:23.000Z",
+      "finalizedAt": "2026-09-27T09:00:29.000Z",
+      "status": "FINAL",
+      "confidence": 0.93,
+      "provenance": "SERVICE"
+    },
+    {
+      "id": "utt-006",
+      "sequence": 6,
+      "speaker": "PATIENT",
+      "speakerLabel": "Patient",
+      "text": "I do not have any fever.",
+      "startedAt": "2026-09-27T09:00:30.000Z",
+      "finalizedAt": "2026-09-27T09:00:33.000Z",
+      "status": "FINAL",
+      "confidence": 0.95,
+      "provenance": "SERVICE"
+    }
+  ]
+}

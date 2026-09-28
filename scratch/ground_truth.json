@@ -1,0 +1,56 @@
+[
+  {
+    "file": "01_doctor.wav",
+    "role": "doctor",
+    "start": 0.0,
+    "end": 3.54
+  },
+  {
+    "file": "02_patient.wav",
+    "role": "patient",
+    "start": 3.99,
+    "end": 8.71
+  },
+  {
+    "file": "03_patient.wav",
+    "role": "patient",
+    "start": 9.16,
+    "end": 16.07
+  },
+  {
+    "file": "04_doctor.wav",
+    "role": "doctor",
+    "start": 16.52,
+    "end": 18.51
+  },
+  {
+    "file": "05_patient.wav",
+    "role": "patient",
+    "start": 18.96,
+    "end": 25.37
+  },
+  {
+    "file": "06_doctor.wav",
+    "role": "doctor",
+    "start": 25.82,
+    "end": 30.62
+  },
+  {
+    "file": "07_patient.wav",
+    "role": "patient",
+    "start": 31.07,
+    "end": 36.84
+  },
+  {
+    "file": "08_patient.wav",
+    "role": "patient",
+    "start": 37.29,
+    "end": 43.34
+  },
+  {
+    "file": "09_doctor.wav",
+    "role": "doctor",
+    "start": 43.78,
+    "end": 50.07
+  }
+]

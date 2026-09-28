@@ -1,0 +1,46 @@
+# ─────────────────────────────────────────────────────────────────────────
+# The Copilot API service.
+#
+# Deliberately not built from requirements.txt: that file carries the audio
+# pipeline (torch, pyannote, speechbrain) which this service never imports.
+# See requirements-copilot.txt for how that was established.
+# ─────────────────────────────────────────────────────────────────────────
+FROM python:3.11-slim AS runtime
+
+# Fail fast and log straight through, so a crash-looping container says why.
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PIP_NO_CACHE_DIR=1
+
+WORKDIR /app
+
+# Dependencies first: source changes should not re-resolve the environment.
+COPY requirements-copilot.txt ./
+RUN pip install --no-cache-dir -r requirements-copilot.txt
+
+# Only what the service actually loads. The audio pipeline, the frontend, the
+# scratch experiments and the test suite stay out of the image.
+COPY app/ ./app/
+COPY clinical_intelligence/ ./clinical_intelligence/
+COPY integration/ ./integration/
+COPY copilot_api/ ./copilot_api/
+
+# Never root.
+RUN useradd --create-home --shell /usr/sbin/nologin copilot \
+ && chown -R copilot:copilot /app
+USER copilot
+
+# Intelligence is off unless a deployment switches it on. The clinical core
+# needs no configuration at all.
+ENV COPILOT_INTELLIGENCE_ENABLED=false
+
+EXPOSE 8000
+
+# `/health` reports the clinical core. A degraded model layer is visible in the
+# body but never makes the container unhealthy — an orchestrator must not
+# restart a service that is serving clinical output correctly.
+HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
+    CMD python -c "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=4).status == 200 else 1)"
+
+CMD ["uvicorn", "copilot_api.bootstrap:create_production_app", "--factory", \
+     "--host", "0.0.0.0", "--port", "8000"]

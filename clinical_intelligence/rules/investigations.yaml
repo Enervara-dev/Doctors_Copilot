@@ -295,7 +295,11 @@
 - id: ct_brain
   name: CT Brain (Non-Contrast)
   category: imaging
-  priority: URGENT
+  # HIGH at rest, URGENT when a stroke or hypertensive-emergency flag fires -
+  # which is what `triggers` below is for. It was URGENT unconditionally, so
+  # any consultation where hypertensive crisis merely appeared in the
+  # differential produced an urgent request for brain imaging.
+  priority: HIGH
   for_diseases:
     - ischemic_stroke
     - meningitis

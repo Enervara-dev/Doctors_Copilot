@@ -42,9 +42,13 @@ class RedFlagDetector:
     """
     Evaluates red_flags.yaml rules against a patient clinical state.
 
-    A red flag fires when ALL required_symptoms are present AND at least
-    one condition in any_of_symptoms, vital_sign_criteria, history_criteria,
-    or risk_factor_criteria is satisfied.
+    A red flag fires when ALL required_symptoms are present AND at least one
+    clinical finding is satisfied - a symptom in any_of_symptoms, or a
+    vital_sign_criteria threshold.
+
+    age_criteria, history_criteria and risk_factor_criteria are supporting:
+    they are recorded as evidence on a flag that fired, but cannot raise one on
+    their own. A risk profile is not a presentation.
     """
 
     def __init__(self, red_flag_rules: List[Dict[str, Any]]) -> None:
@@ -137,14 +141,21 @@ class RedFlagDetector:
             rf_matched = [r for r in rf_terms if r in risk_factor_ids]
             triggered_by.extend(rf_matched)
 
-            # ── Decision: fire if any trigger present ──
-            any_trigger = (
-                has_symptom_trigger
-                or has_vital_trigger
-                or has_age_trigger
-                or bool(hist_matched)
-                or bool(rf_matched)
-            )
+            # ── Decision: a red flag needs a clinical finding ──
+            #
+            # Age, comorbidity and risk factors are what this file's own schema
+            # calls supporting criteria - "any matching history item adds
+            # support". They raise suspicion about a presentation; they are not
+            # one. Firing on them alone meant a 62-year-old with hypertension
+            # and diabetes drew a CRITICAL stroke alert with no neurological
+            # symptom anywhere in the consultation, and a CRITICAL sepsis alert
+            # on the word "diabetes" with no fever and no vitals.
+            #
+            # They still appear in supporting_evidence and still amplify a flag
+            # that a symptom or vital has legitimately raised. Every rule in
+            # red_flags.yaml defines both any_of_symptoms and
+            # vital_sign_criteria, so none loses its ability to fire.
+            any_trigger = has_symptom_trigger or has_vital_trigger
             if not any_trigger:
                 continue
 

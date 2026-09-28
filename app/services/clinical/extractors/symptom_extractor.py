@@ -15,6 +15,32 @@ from app.services.clinical.extractors.negation import NegationDetector
 from app.services.clinical.extractors.confidence import ConfidenceScorer
 from app.services.clinical.extractors.context import context_manager
 
+#: Words patients drop into the middle of a complaint without changing it:
+#: "my face SUDDENLY drooped", "chest feels REALLY tight". A closed list, so
+#: a multi-word alias tolerates them without the pattern becoming permissive.
+_INTERPOSED = (
+    "suddenly", "really", "very", "quite", "just", "now", "also", "still",
+    "slightly", "completely", "totally", "absolutely", "definitely",
+    "sometimes", "always", "constantly", "badly", "terribly",
+)
+_GAP = r"\s+(?:(?:" + "|".join(_INTERPOSED) + r")\s+)?"
+
+
+def _alias_pattern(term: str) -> str:
+    """
+    A word-bounded pattern for one alias, tolerant of an interposed adverb.
+
+    Single-word aliases are unchanged. A multi-word alias allows at most one
+    filler between each pair of words, which is what lets "face suddenly
+    drooped" match the alias "face drooped" without the pattern matching
+    arbitrary text in between.
+    """
+    words = [re.escape(w) for w in term.split()]
+    if len(words) == 1:
+        return r"\b" + words[0] + r"\b"
+    return r"\b" + _GAP.join(words) + r"\b"
+
+
 class SymptomExtractor:
     def __init__(self):
         self.negation_detector = NegationDetector()
@@ -146,17 +172,32 @@ class SymptomExtractor:
                 for canonical, synonyms in self.symptoms_dict.items():
                     all_syns = [canonical] + synonyms
                     for term in all_syns:
-                        pattern = r'\b' + re.escape(term) + r'\b'
+                        pattern = _alias_pattern(term)
                         for match in re.finditer(pattern, clause, re.IGNORECASE):
                             span_start = match.start()
                             span_end = match.end()
-                            if not any(s["start"] <= span_start and span_end <= s["end"] for s in detected_symptoms):
-                                detected_symptoms.append({
-                                    "name": canonical,
-                                    "matched_text": term,
-                                    "start": span_start,
-                                    "end": span_end
-                                })
+                            # Longest match wins. "severe headache" and
+                            # "headache" both match the same words, and
+                            # dictionary order decides which is seen first, so
+                            # rejecting only the shorter-arriving-second case
+                            # left one utterance producing two symptoms. The
+                            # more specific term is the one the patient said.
+                            if any(
+                                s["start"] <= span_start and span_end <= s["end"]
+                                for s in detected_symptoms
+                            ):
+                                continue
+                            detected_symptoms = [
+                                s
+                                for s in detected_symptoms
+                                if not (span_start <= s["start"] and s["end"] <= span_end)
+                            ]
+                            detected_symptoms.append({
+                                "name": canonical,
+                                "matched_text": term,
+                                "start": span_start,
+                                "end": span_end
+                            })
 
                 if detected_symptoms:
                     # Detect severities

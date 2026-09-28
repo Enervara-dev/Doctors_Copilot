@@ -1,0 +1,33 @@
+# =====================================================================
+# Runtime dependencies for the Copilot API service only.
+#
+# The full requirements.txt covers the audio pipeline as well — torch,
+# torchaudio, pyannote, speechbrain — none of which this service imports.
+# Verified by loading copilot_api.bootstrap and inspecting sys.modules:
+# the only weighty transitive imports are numpy (TF-IDF retrieval) and the
+# neo4j driver (imported defensively by the knowledge-graph manager, which
+# degrades cleanly when no graph is reachable).
+#
+# Keeping them apart is the difference between a ~150 MB image and a ~5 GB one.
+#   pip install -r requirements-copilot.txt
+# =====================================================================
+
+fastapi>=0.110.0
+uvicorn[standard]>=0.28.0
+pydantic>=2.6.0
+pydantic-settings>=2.2.0
+PyJWT>=2.8.0
+python-dotenv>=1.0.0
+pyyaml>=6.0.0
+httpx>=0.28.1
+
+# Intelligence layer. Vendor-neutral: graph nodes call the ModelClient seam,
+# so no model SDK is required to run or test the service.
+langgraph>=1.2,<2
+
+# Local TF-IDF guideline retrieval.
+numpy>=1.26.4
+
+# Optional knowledge-graph enrichment. Imported defensively; the reasoning
+# engine runs without a reachable graph.
+neo4j>=6.3.0

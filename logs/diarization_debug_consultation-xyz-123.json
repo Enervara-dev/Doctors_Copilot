@@ -1,158 +1,23 @@
 {
   "session_id": "consultation-xyz-123",
-  "timestamp": 1783349503.0895598,
+  "timestamp": 1787667262.1355963,
   "pyannote_segments": [
     {
-      "start": 0.35159375000000004,
-      "end": 2.83221875,
+      "start": 0.0,
+      "end": 3.73,
       "label": "Speaker_0"
-    },
-    {
-      "start": 3.4397187500000004,
-      "end": 8.29971875,
-      "label": "Speaker_1"
-    },
-    {
-      "start": 8.72159375,
-      "end": 9.548468750000001,
-      "label": "Speaker_0"
-    },
-    {
-      "start": 9.93659375,
-      "end": 12.41721875,
-      "label": "Speaker_0"
-    },
-    {
-      "start": 12.957218750000003,
-      "end": 17.15909375,
-      "label": "Speaker_1"
-    },
-    {
-      "start": 18.74534375,
-      "end": 22.035968750000002,
-      "label": "Speaker_0"
-    },
-    {
-      "start": 22.99784375,
-      "end": 24.887843750000002,
-      "label": "Speaker_0"
-    },
-    {
-      "start": 25.59659375,
-      "end": 27.149093750000002,
-      "label": "Speaker_0"
-    },
-    {
-      "start": 27.65534375,
-      "end": 28.988468750000003,
-      "label": "Speaker_1"
-    },
-    {
-      "start": 29.140343750000003,
-      "end": 30.574718750000002,
-      "label": "Speaker_1"
-    },
-    {
-      "start": 31.519718750000003,
-      "end": 32.66721875,
-      "label": "Speaker_0"
-    },
-    {
-      "start": 33.32534375,
-      "end": 35.58659375,
-      "label": "Speaker_0"
-    },
-    {
-      "start": 35.822843750000004,
-      "end": 39.282218750000006,
-      "label": "Speaker_0"
-    },
-    {
-      "start": 40.00784375,
-      "end": 41.89784375,
-      "label": "Speaker_1"
-    },
-    {
-      "start": 42.471593750000004,
-      "end": 47.12909375,
-      "label": "Speaker_0"
-    },
-    {
-      "start": 47.77034375,
-      "end": 50.470343750000005,
-      "label": "Speaker_1"
-    },
-    {
-      "start": 51.516593750000006,
-      "end": 55.34721875,
-      "label": "Speaker_0"
-    },
-    {
-      "start": 55.752218750000004,
-      "end": 57.57471875,
-      "label": "Speaker_0"
-    },
-    {
-      "start": 57.92909375,
-      "end": 58.55346875,
-      "label": "Speaker_1"
-    },
-    {
-      "start": 58.85721875,
-      "end": 59.61659375000001,
-      "label": "Speaker_1"
     }
   ],
   "words": [],
   "word_speaker_mapping": [],
   "final_events": [
     {
-      "event_id": "d41d2eb4-05aa-4be6-9924-974bda2d693a",
-      "sequence_number": 15,
+      "event_id": "087b57c9-a4dc-479d-8e09-edf4064e82e4",
+      "sequence_number": 0,
       "speaker_id": "doctor",
-      "transcript": "prescribe you some antibiotics and syrup for the cough.",
-      "start_time": 38.233333333333334,
-      "end_time": 41.9
-    },
-    {
-      "event_id": "4ea87c46-22d8-446e-bd00-2ec843dffc4e",
-      "sequence_number": 16,
-      "speaker_id": "patient",
-      "transcript": "How long will it take to feel better?",
-      "start_time": 41.9,
-      "end_time": 44.36666666666667
-    },
-    {
-      "event_id": "e7bcd214-ee3e-4e45-967b-cc7e04a9bea5",
-      "sequence_number": 17,
-      "speaker_id": "doctor",
-      "transcript": "Usually within three to four days if you rest and take the medicine on time.",
-      "start_time": 44.36666666666667,
-      "end_time": 49.43333333333333
-    },
-    {
-      "event_id": "9abb6a29-3cc1-444e-ac00-48f49cce7ce8",
-      "sequence_number": 18,
-      "speaker_id": "patient",
-      "transcript": "All right. I'll do that. Thank you, Doctor.",
-      "start_time": 49.43333333333333,
-      "end_time": 52.166666666666664
-    },
-    {
-      "event_id": "84f032c4-0169-4627-859d-366eef65b191",
-      "sequence_number": 19,
-      "speaker_id": "doctor",
-      "transcript": "Take care. Drink plenty of water and get enough sleep. Come back if the fever doesn't go down.",
-      "start_time": 52.166666666666664,
-      "end_time": 58.3
-    },
-    {
-      "event_id": "35a3a5f8-5231-46d1-ab0a-23f942a5993b",
-      "sequence_number": 20,
-      "speaker_id": "patient",
-      "transcript": "I will. Thanks again.",
-      "start_time": 58.3,
-      "end_time": 59.63333333333333
+      "transcript": "Да.",
+      "start_time": 4.26,
+      "end_time": 4.46
     }
   ]
 }

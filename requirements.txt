@@ -181,3 +181,8 @@ neo4j>=6.3.0
 pinecone>=9.1.0
 httpx>=0.28.1
 huggingface-hub>=1.28.0
+
+# Intelligence layer. The graph itself is vendor-neutral: nodes call the
+# ModelClient seam in integration/intelligence/model_client.py, so no model
+# SDK is required to run or test it.
+langgraph>=1.2,<2

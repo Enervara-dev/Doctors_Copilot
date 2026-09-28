@@ -11,6 +11,7 @@ Module/Component: Test Suites
 
 import unittest
 import asyncio
+from unittest import mock
 from typing import Any, Dict, List
 
 from clinical_intelligence.vector_store.store import ClinicalVectorStore
@@ -82,16 +83,26 @@ class TestHybridIntelligence(unittest.IsolatedAsyncioTestCase):
 
         It used to substitute MockLLMProvider text here, which reached the caller in
         the same fields as a real answer and could not be told apart from one.
+
+        The absence of a provider is established here rather than assumed. It used
+        to depend on the ambient environment having no key, so on a machine that
+        has one this test made a live API call and then failed for the wrong
+        reason — the selection logic reads these two names at call time.
         """
-        res_json, telemetry = await self.orchestrator.execute_prompt(
-            prompt_id="adaptive_questions_v1",
-            template_params={
-                "context": "Patient has acute chest pain.",
-                "stage": "Assessment",
-                "progress_percent": 85,
-                "question_limit": 2
-            }
-        )
+        with mock.patch.multiple(
+            "clinical_intelligence.llm.orchestrator",
+            GEMINI_API_KEY="",
+            OPENAI_API_KEY="",
+        ):
+            res_json, telemetry = await self.orchestrator.execute_prompt(
+                prompt_id="adaptive_questions_v1",
+                template_params={
+                    "context": "Patient has acute chest pain.",
+                    "stage": "Assessment",
+                    "progress_percent": 85,
+                    "question_limit": 2
+                }
+            )
         self.assertIsNone(res_json, "no provider answered, so there must be no result")
         self.assertEqual(telemetry.get("status"), "unavailable")
         self.assertIsNotNone(telemetry)

@@ -1,0 +1,37 @@
+# The Copilot image copies four packages. Everything else is context the
+# daemon would upload and never use — the pretrained speaker models alone are
+# 85 MB, and they belong to the audio pipeline this service does not import.
+
+.git/
+.gitignore
+.venv/
+venv/
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Secrets. A .env must never be baked into an image; configuration arrives
+# through the environment at run time.
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# The audio pipeline and its weights.
+pretrained_models/
+*.wav
+*.mp3
+*.pt
+*.bin
+
+# Development-only trees.
+tests/
+scratch/
+frontend/
+docs/
+Dockerfile*
+requirements.txt

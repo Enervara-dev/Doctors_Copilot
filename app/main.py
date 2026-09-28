@@ -26,6 +26,7 @@ os.environ.setdefault("HF_HUB_OFFLINE", "1")
 from fastapi import FastAPI, status
 from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import settings
+from app.api.transcript_stream import router as transcript_router
 from app.api.websocket import router as ws_router
 from app.services.session import session_manager
 from app.services.stt_manager import stt_manager
@@ -49,6 +50,9 @@ app.add_middleware(
 
 # Register routers
 app.include_router(ws_router, prefix=settings.API_V1_STR)
+# Read-only egress for the transcripts the STT workers publish. Audio goes in
+# over the WebSocket above; without this nothing came back out.
+app.include_router(transcript_router, prefix=settings.API_V1_STR)
 
 # Startup logging
 @app.on_event("startup")
