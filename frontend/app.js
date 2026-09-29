@@ -48,7 +48,13 @@ const base = () => $("apiBase").value.replace(/\/+$/, "");
 const session = () => $("sessionId").value.trim();
 
 async function getJSON(path) {
-  const res = await fetch(base() + path);
+  // The transcript/state/reasoning GET endpoints now require the same bearer
+  // credential used to open the WebSocket for this session (a session id
+  // alone used to be enough to read it). Reuse the token already entered in
+  // the settings drawer — no new UI, just the header these endpoints now check.
+  const token = $("token")?.value?.trim();
+  const headers = token ? { Authorization: `Bearer ${token}` } : {};
+  const res = await fetch(base() + path, { headers });
   if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
   return res.json();
 }

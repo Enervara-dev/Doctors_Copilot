@@ -54,15 +54,21 @@ async def audio_streaming_endpoint(
 
     # Accept the connection
     await websocket.accept()
-    
+
     # 2. Register participant stream with Session Manager
     consultation = await session_manager.get_or_create_session(session_id)
     stream = consultation.register_stream(role, websocket)
-    
+
     logger.info(
         "WebSocket connection established",
         extra={"session_id": session_id, "role": role, "event": "connection_established"}
     )
+
+    # 3. Bridge this consultation to the Copilot API, if configured. A no-op
+    # (COPILOT_BRIDGE_ENABLED unset) has zero effect on ingestion; a configured
+    # but unreachable Copilot API logs and does not affect audio capture.
+    from app.services.copilot_bridge import copilot_bridge
+    await copilot_bridge.ensure_bridged(session_id, token)
 
     try:
         # Ingestion Loop

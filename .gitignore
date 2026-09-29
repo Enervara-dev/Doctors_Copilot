@@ -29,3 +29,17 @@ Thumbs.db
 # These were previously committed as stub files holding another machine's cache
 # paths, which silently disabled speaker verification.
 pretrained_models/
+
+# Diarization debug dumps (CLINICAL_COPILOT_DIARIZATION_DEBUG=True writes one
+# full word-by-word transcript per session here). This directory was
+# previously committed with 26 such dumps, including transcript content —
+# exactly the pattern that would leak real patient speech if left on in a
+# deployed environment. Never track this directory.
+logs/
+
+# A zip of docs/, which already exists as plain files in this repo.
+docs.zip
+
+# Machine-specific CA bundle exports (see docs/integrations/README.md for the
+# one-liner that regenerates one, if a TLS-inspecting proxy ever requires it).
+scratch/*.pem

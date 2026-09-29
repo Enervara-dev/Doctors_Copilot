@@ -100,7 +100,8 @@ async def stream_audio(file_path: str, role: str):
     for attempt in range(1, max_attempts + 1):
         try:
             url = f"http://127.0.0.1:{PORT}/v1/transcripts/{SESSION_ID}"
-            with urllib.request.urlopen(url) as response:
+            req = urllib.request.Request(url, headers={"Authorization": f"Bearer {TOKEN}"})
+            with urllib.request.urlopen(req) as response:
                 transcripts = json.loads(response.read().decode())
                 if transcripts:
                     print(f"Fetched {len(transcripts)} transcript events successfully:", flush=True)
@@ -113,7 +114,8 @@ async def stream_audio(file_path: str, role: str):
                     print("\nRetrieving clinical state from Clinical State Engine...", flush=True)
                     try:
                         state_url = f"http://127.0.0.1:{PORT}/v1/clinical-state/{SESSION_ID}"
-                        with urllib.request.urlopen(state_url) as res_state:
+                        state_req = urllib.request.Request(state_url, headers={"Authorization": f"Bearer {TOKEN}"})
+                        with urllib.request.urlopen(state_req) as res_state:
                             state = json.loads(res_state.read().decode())
                             print("\n================ CLINICAL STATE ================ ", flush=True)
                             print(json.dumps(state, indent=4), flush=True)
@@ -125,7 +127,8 @@ async def stream_audio(file_path: str, role: str):
                     print("\nRetrieving clinical reasoning from Clinical Reasoning Engine...", flush=True)
                     try:
                         reasoning_url = f"http://127.0.0.1:{PORT}/v1/clinical-reasoning/{SESSION_ID}"
-                        with urllib.request.urlopen(reasoning_url) as res_reasoning:
+                        reasoning_req = urllib.request.Request(reasoning_url, headers={"Authorization": f"Bearer {TOKEN}"})
+                        with urllib.request.urlopen(reasoning_req) as res_reasoning:
                             res = json.loads(res_reasoning.read().decode())
                             if "message" in res:
                                 print(res["message"], flush=True)

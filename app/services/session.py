@@ -124,6 +124,9 @@ class SessionManager:
                         diarization_worker_manager.clear_session(session_id)
                         speaker_timeline_manager.clear_timeline(session_id)
                         speaker_alignment_service.clear_session(session_id)
+
+                        from app.services.copilot_bridge import copilot_bridge
+                        copilot_bridge.clear_session(session_id)
                     except Exception as e:
                         logger.error(
                             "SessionManager: Error cleaning up parallel diarization resources",

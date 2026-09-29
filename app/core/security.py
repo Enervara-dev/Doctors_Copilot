@@ -69,3 +69,42 @@ def verify_participant_role(role: str) -> bool:
         logger.warning("Authorization failed: Invalid role", extra={"event": "auth_failure", "reason": "invalid_role", "role": role})
         return False
     return True
+
+
+def require_session_auth(session_id: str, authorization: Optional[str]) -> None:
+    """
+    Same rule the WebSocket ingress has enforced since before this function
+    existed, applied to the read-side HTTP endpoints that never had it.
+
+    A GET on `/v1/transcripts/{id}`, `/v1/clinical-state/{id}`, its
+    `/provenance` sibling, or `/v1/clinical-reasoning/{id}` used to require
+    nothing but a guessable session id. This closes that: the caller must
+    present the same shared token or JWT that a participant used to open the
+    WebSocket for this session, checked against this exact session id via the
+    same `verify_session_token` used there.
+
+    Raises `HTTPException` rather than returning a bool because every caller
+    is a FastAPI route dependency and wants the 401 shaped consistently.
+    """
+    from fastapi import HTTPException, status as http_status
+
+    if not authorization:
+        raise HTTPException(
+            status_code=http_status.HTTP_401_UNAUTHORIZED,
+            detail="A bearer token is required.",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
+    scheme, _, token = authorization.partition(" ")
+    if scheme.lower() != "bearer" or not token.strip():
+        raise HTTPException(
+            status_code=http_status.HTTP_401_UNAUTHORIZED,
+            detail="Expected an Authorization: Bearer credential.",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
+    if not verify_session_token(token.strip(), expected_session_id=session_id):
+        raise HTTPException(
+            status_code=http_status.HTTP_403_FORBIDDEN,
+            detail="This credential is not valid for this session.",
+        )

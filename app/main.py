@@ -23,9 +23,24 @@ import os
 # HF_HUB_OFFLINE=0 for the initial download of the pyannote and ECAPA weights.
 os.environ.setdefault("HF_HUB_OFFLINE", "1")
 
-from fastapi import FastAPI, status
+# `app.core.config.Settings` reads `.env` on its own (pydantic-settings'
+# `env_file` mechanism reads the file directly, independent of os.environ).
+# Nothing else in this process did that for plain `os.getenv()` calls, which
+# is how they're read everywhere outside that one Settings class — including
+# `app.services.copilot_bridge`. Without this, COPILOT_BRIDGE_ENABLED in .env
+# was invisible to os.getenv() unless some unrelated route had already
+# imported clinical_intelligence.config (which calls load_dotenv() as a side
+# effect) before the bridge singleton was first constructed — an accident of
+# import order, not a guarantee. Calling it here, first, removes that
+# dependency on what happened to run before it.
+from dotenv import load_dotenv
+load_dotenv()
+
+from typing import Optional
+from fastapi import FastAPI, Header, status
 from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import settings
+from app.core.security import require_session_auth
 from app.api.transcript_stream import router as transcript_router
 from app.api.websocket import router as ws_router
 from app.services.session import session_manager
@@ -109,11 +124,20 @@ async def health_check():
 
 # Dynamic Verification Endpoint for Step 2 Transcripts
 @app.get("/v1/transcripts/{session_id}", status_code=status.HTTP_200_OK)
-async def get_transcripts(session_id: str, include_partials: bool = False):
+async def get_transcripts(
+    session_id: str,
+    include_partials: bool = False,
+    authorization: Optional[str] = Header(default=None),
+):
     """
     Retrieves buffered transcript events for a given session.
     If include_partials is False (default), only final (committed) events are returned.
+
+    Requires the same bearer credential (shared token or JWT) a participant used
+    to open the WebSocket for this session — a session id alone is no longer
+    sufficient to read another session's transcript.
     """
+    require_session_auth(session_id, authorization)
     from app.services.transcript_bus import transcript_bus
     events = transcript_bus.get_recent_events(session_id)
     if not include_partials:
@@ -121,28 +145,43 @@ async def get_transcripts(session_id: str, include_partials: bool = False):
     return [event.dict() for event in events]
 
 @app.get("/v1/clinical-state/{session_id}", status_code=status.HTTP_200_OK)
-async def get_clinical_state(session_id: str):
+async def get_clinical_state(
+    session_id: str,
+    authorization: Optional[str] = Header(default=None),
+):
     """
     Retrieves the accumulated incremental structured clinical state for a session.
+    Requires a bearer credential valid for this session.
     """
+    require_session_auth(session_id, authorization)
     from app.services.clinical import clinical_state_engine
     state = clinical_state_engine.get_state(session_id)
     return state.model_dump()
 
 @app.get("/v1/clinical-state/{session_id}/provenance", status_code=status.HTTP_200_OK)
-async def get_clinical_state_provenance(session_id: str):
+async def get_clinical_state_provenance(
+    session_id: str,
+    authorization: Optional[str] = Header(default=None),
+):
     """
     Retrieves the internal fact provenance metadata dictionary for clinical state auditing.
+    Requires a bearer credential valid for this session.
     """
+    require_session_auth(session_id, authorization)
     from app.services.clinical import clinical_state_engine
     return clinical_state_engine.get_provenance(session_id)
 
 @app.get("/v1/clinical-reasoning/{session_id}", status_code=status.HTTP_200_OK)
-async def get_clinical_reasoning(session_id: str):
+async def get_clinical_reasoning(
+    session_id: str,
+    authorization: Optional[str] = Header(default=None),
+):
     """
     Retrieves the clinical reasoning results (candidate diagnoses, red flags,
     interactions, and recommendations) for a session.
+    Requires a bearer credential valid for this session.
     """
+    require_session_auth(session_id, authorization)
     from clinical_intelligence.integration import get_reasoning_result
     from clinical_intelligence.presentation.serializer import serialize_reasoning_result
     from clinical_intelligence.config.runtime import ENABLE_RED_FLAG_ALERTS
