@@ -17,8 +17,11 @@ from __future__ import annotations
 
 import asyncio
 import json
+import logging
 import queue
 from typing import Any, Dict, List, Optional
+
+_log = logging.getLogger(__name__)
 
 from fastapi import Body, FastAPI, Header, HTTPException, Path, Request, status
 from fastapi.responses import JSONResponse, StreamingResponse
@@ -294,6 +297,26 @@ def create_app(
             "VALIDATION_ERROR",
             "The event did not match the CopilotEvent contract.",
             details=json.loads(exc.json()),
+        )
+
+    @app.exception_handler(Exception)
+    def _unexpected(request: Request, exc: Exception) -> JSONResponse:
+        """
+        The backstop. Every domain error above has a specific mapping; anything
+        that reaches here is a bug, not a refused request, and the caller gets
+        no more detail than that — `exc_info=True` here, not in the response,
+        is what keeps a stack trace out of an HTTP body while still landing it
+        in the structured log this service now actually configures (see
+        `copilot_api/logging_config.py`).
+        """
+        _log.error(
+            "Unhandled exception on %s %s", request.method, request.url.path,
+            exc_info=exc,
+        )
+        return _error(
+            status.HTTP_500_INTERNAL_SERVER_ERROR,
+            "INTERNAL_ERROR",
+            "An unexpected error occurred. It has been logged.",
         )
 
     # ── routes ────────────────────────────────────────────────────────────

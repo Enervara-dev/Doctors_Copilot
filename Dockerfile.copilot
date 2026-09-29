@@ -31,7 +31,11 @@ RUN useradd --create-home --shell /usr/sbin/nologin copilot \
 USER copilot
 
 # Intelligence is off unless a deployment switches it on. The clinical core
-# needs no configuration at all.
+# needs no configuration at all. ENVIRONMENT is deliberately NOT set here:
+# leaving it unset would silently make check_auth_secret's insecure-auth
+# override effective in every deployment of this image. Set it explicitly to
+# "production" in the task definition / Railway config for the real
+# deployment — see copilot_api/DEPLOYMENT.md.
 ENV COPILOT_INTELLIGENCE_ENABLED=false
 
 EXPOSE 8000
@@ -42,5 +46,23 @@ EXPOSE 8000
 HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
     CMD python -c "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=4).status == 200 else 1)"
 
+# Exactly one worker, deliberately: session state is an in-memory dict per
+# process (see integration/copilot_runtime.py). A second worker process, or a
+# second task behind a load balancer, would have its own dict — a session
+# opened on one would not exist on the other, and requests would appear to
+# randomly 404. Scale this service by giving one task more CPU, not by
+# running more of them. See DEPLOYMENT.md for what would need to change
+# before that constraint could be lifted.
+#
+# --proxy-headers trusts X-Forwarded-Proto/X-Forwarded-For from whatever sits
+# in front of this container (an ALB in the AWS deployment). This is safe only
+# because the container's security group must restrict inbound traffic to
+# that proxy alone — see DEPLOYMENT.md. --timeout-keep-alive is set above
+# uvicorn's 5s default to outlive a typical ALB idle timeout (60s) without the
+# ALB reusing a connection uvicorn already closed on its end.
 CMD ["uvicorn", "copilot_api.bootstrap:create_production_app", "--factory", \
-     "--host", "0.0.0.0", "--port", "8000"]
+     "--host", "0.0.0.0", "--port", "8000", \
+     "--workers", "1", \
+     "--proxy-headers", "--forwarded-allow-ips", "*", \
+     "--timeout-keep-alive", "75", \
+     "--timeout-graceful-shutdown", "25"]

@@ -221,6 +221,51 @@ class CopilotSession:
         self._reasoning_runs = 0
         self._reasoning_skipped = 0
 
+    # ── persistence (optional; see copilot_api/persistence.py) ──────────────
+    def to_snapshot(self) -> Dict[str, Any]:
+        """
+        The subset of session state worth surviving a restart: the clinical
+        state, its provenance, and enough sequencing bookkeeping that ordering
+        guarantees hold afterward. Deliberately excludes emission-throttling
+        state (`_last_view`, `_last_fingerprint`, `_last_reasoning`, the
+        emit/suppress counters) — see `copilot_api/persistence.py` for why
+        that's a UX cost, not a safety one, to drop.
+        """
+        return {
+            "status": self.status.value,
+            "last_seen": self.last_seen,
+            "next_sequence": self._next_sequence,
+            "seen": sorted(self._seen),
+            "partials": dict(self._partials),
+            "final_count": self._final_count,
+            "clinical_state": self._state_engine.get_state(self.consultation_id).model_dump(mode="json"),
+            "provenance": self._state_engine.get_provenance(self.consultation_id),
+        }
+
+    def restore_snapshot(self, snapshot: Dict[str, Any]) -> None:
+        """
+        The inverse of `to_snapshot`. Called once, immediately after
+        construction and before any event is ingested — restoring into a
+        session that has already processed events would silently discard
+        them, so `CopilotRuntime.open_session` guarantees that ordering.
+        """
+        self.status = SessionStatus(snapshot["status"])
+        self.last_seen = snapshot["last_seen"]
+        self._next_sequence = snapshot["next_sequence"]
+        self._seen = set(snapshot["seen"])
+        self._partials = dict(snapshot["partials"])
+        self._final_count = snapshot["final_count"]
+
+        # Reach into the private engine this session already owns exclusively
+        # (constructed fresh in __init__, never shared) rather than adding a
+        # public mutator to ClinicalStateEngine for a restore path only this
+        # module uses — that engine is shared clinical-core code, and this
+        # keeps the persistence concern entirely inside the Copilot service.
+        restored_state = ClinicalState.model_validate(snapshot["clinical_state"])
+        self._state_engine._states[self.consultation_id] = restored_state
+        if snapshot.get("provenance"):
+            self._state_engine._provenance[self.consultation_id] = dict(snapshot["provenance"])
+
     # ── lifecycle ─────────────────────────────────────────────────────────
     def open(self) -> None:
         if self.status is SessionStatus.CLOSED:
@@ -501,10 +546,19 @@ class CopilotRuntime:
         idle_timeout_seconds: Optional[float] = None,
         clock: Callable[[], float] = time.monotonic,
         retired_capacity: Optional[int] = None,
+        snapshot_store: Optional[Any] = None,
     ):
         self._sessions: Dict[str, CopilotSession] = {}
         self._on_result = on_result
         self._reasoning_engine = reasoning_engine or ClinicalReasoningEngine()
+
+        #: Optional `copilot_api.persistence.SnapshotStore`. Typed as `Any`
+        #: rather than imported: this module is the clinical core's own
+        #: integration layer and must not depend on the transport package
+        #: that happens to be its one caller today. None (the default) means
+        #: every method below that mentions it is a no-op, and behaviour is
+        #: byte-for-byte what it was before persistence existed.
+        self._snapshot_store = snapshot_store
 
         # Injected so eviction is deterministic in tests. `time.monotonic`
         # rather than `time.time`: a clock adjustment must not retire a live
@@ -564,6 +618,8 @@ class CopilotRuntime:
             self._sessions[cid].expire()
             self._retire(cid, "expired")
             self._expired_count += 1
+            if self._snapshot_store is not None:
+                self._snapshot_store.delete(cid)
             logger.info(
                 "Expired consultation %s after %gs of inactivity",
                 cid,
@@ -584,9 +640,42 @@ class CopilotRuntime:
         session = CopilotSession(
             consultation_id, reasoning_engine=self._reasoning_engine, now=now
         )
-        session.open()
+
+        restored = self._try_restore(consultation_id, session)
+        if not restored:
+            session.open()
+
         self._sessions[consultation_id] = session
         return session
+
+    def _try_restore(self, consultation_id: str, session: CopilotSession) -> bool:
+        """
+        Loads a persisted snapshot into a freshly constructed session, before
+        it has processed anything, so restoring can never discard events.
+
+        A snapshot left in a terminal state (CLOSED/EXPIRED) is ignored rather
+        than restored: `close_session` deletes its own snapshot, so one
+        surviving in that state is stale — from a session that closed after a
+        crash before the delete ran — and reviving a closed consultation as
+        open would be wrong in a way silently dropping it is not.
+        """
+        if self._snapshot_store is None:
+            return False
+        snapshot = self._snapshot_store.load(consultation_id)
+        if snapshot is None:
+            return False
+        if snapshot.get("status") in (SessionStatus.CLOSED.value, SessionStatus.EXPIRED.value):
+            logger.info(
+                "Ignoring stale %s snapshot for consultation %s",
+                snapshot.get("status"), consultation_id,
+            )
+            return False
+        session.restore_snapshot(snapshot)
+        logger.info(
+            "Restored consultation %s from persisted snapshot (next_sequence=%d, final_count=%d)",
+            consultation_id, session._next_sequence, session._final_count,
+        )
+        return True
 
     def close_session(self, consultation_id: str) -> None:
         """
@@ -603,13 +692,34 @@ class CopilotRuntime:
             raise UnknownSessionError(f"No session for consultation {consultation_id}.")
         session.close()
         self._retire(consultation_id, "closed")
+        if self._snapshot_store is not None:
+            self._snapshot_store.delete(consultation_id)
 
     def get_session(self, consultation_id: str) -> CopilotSession:
+        """
+        Read-only lookup — for `GET /sessions/{id}`, `/insights`,
+        `/intelligence`, `/stream`, and `close_session`. Unlike `ingest`, this
+        has no `auto_open` concept: a GET must never create a consultation
+        that has never received an event. It must, however, still recover one
+        that has — a session absent from memory only because the process
+        restarted is not the same as one that never existed, and a client
+        polling `/insights` right after a restart (before the next event
+        happens to arrive) would otherwise see a false 404. See
+        `_try_restore` for what persistence does and does not restore.
+        """
         session = self._sessions.get(consultation_id)
-        if session is None:
-            self._refuse_if_retired(consultation_id)
-            raise UnknownSessionError(f"No session for consultation {consultation_id}.")
-        return session
+        if session is not None:
+            return session
+
+        self._refuse_if_retired(consultation_id)
+        candidate = CopilotSession(
+            consultation_id, reasoning_engine=self._reasoning_engine, now=self._clock()
+        )
+        if self._try_restore(consultation_id, candidate):
+            self._sessions[consultation_id] = candidate
+            return candidate
+
+        raise UnknownSessionError(f"No session for consultation {consultation_id}.")
 
     @property
     def active_sessions(self) -> List[str]:
@@ -660,6 +770,15 @@ class CopilotRuntime:
 
         session.touch(self._clock())
         results = session.ingest(event)
+        if self._snapshot_store is not None:
+            # After, not before: a snapshot must never claim to have applied an
+            # event that raised partway through. `session.ingest` mutates
+            # in-place, so a snapshot taken after a raise would be wrong in the
+            # same way — but ingest() only returns normally once its state
+            # transition is complete, so this line is unreached on failure.
+            self._snapshot_store.save(
+                event.consultation_id, session.status.value, session.to_snapshot()
+            )
         for result in results:
             self._publish(result)
         return results

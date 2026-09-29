@@ -20,9 +20,12 @@ from contextlib import asynccontextmanager
 from typing import AsyncIterator, Optional, Tuple
 
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+from starlette.middleware.trustedhost import TrustedHostMiddleware
 
+from copilot_api.logging_config import configure_structured_logging
 from copilot_api.main import ResultBroker, SnapshotBroker, create_app
-from copilot_api.settings import CopilotSettings
+from copilot_api.settings import CopilotSettings, is_production_environment
 from integration.copilot_runtime import CopilotRuntime
 from integration.intelligence.contract import IntelligenceProvider
 from integration.intelligence.gateway import IntelligenceGateway
@@ -97,8 +100,11 @@ def build_application(
 
     results = ResultBroker()
     snapshots = SnapshotBroker()
+    snapshot_store = build_snapshot_store(resolved)
     runtime = CopilotRuntime(
-        results, idle_timeout_seconds=resolved.session_idle_timeout_seconds
+        results,
+        idle_timeout_seconds=resolved.session_idle_timeout_seconds,
+        snapshot_store=snapshot_store,
     )
     intelligence = build_intelligence(resolved, snapshots)
 
@@ -125,7 +131,39 @@ def build_application(
         lifespan=lifespan,
     )
     app.state.settings = resolved
+
+    # Both middlewares default to permissive/absent when unconfigured (empty
+    # origin/host lists), so a deployment that sets neither variable — every
+    # test in this repository, and a first production deployment before its
+    # real hostname is known — behaves exactly as before either existed.
+    if resolved.cors_allowed_origins:
+        app.add_middleware(
+            CORSMiddleware,
+            allow_origins=resolved.cors_allowed_origins,
+            allow_credentials=False,  # Bearer tokens, not cookies — nothing needs this.
+            allow_methods=["GET", "POST"],
+            allow_headers=["Authorization", "Content-Type"],
+        )
+    if resolved.trusted_hosts:
+        app.add_middleware(TrustedHostMiddleware, allowed_hosts=resolved.trusted_hosts)
+
     return app, intelligence
+
+
+def build_snapshot_store(settings: CopilotSettings):
+    """
+    Returns `None` (persistence off) unless `COPILOT_STATE_DB_PATH` is set.
+
+    See `copilot_api/persistence.py` for what this does and does not cover,
+    and `copilot_api/DEPLOYMENT.md` for why the path must be a mounted
+    persistent volume in a container deployment, not the container's own
+    ephemeral filesystem, for this to survive a task replacement.
+    """
+    if not settings.state_db_path:
+        return None
+    from copilot_api.persistence import SnapshotStore
+
+    return SnapshotStore(settings.state_db_path)
 
 
 #: The value `app/core/config.py` ships when nothing is configured. It is in a
@@ -149,12 +187,23 @@ def check_auth_secret(*, allow_insecure: bool = False) -> None:
     loud, and startup is the only place it can still be made loud cheaply.
 
     `COPILOT_ALLOW_INSECURE_AUTH=true` opts out for local development. It is
-    deliberately awkward to set by accident.
+    deliberately awkward to set by accident, and `ENVIRONMENT=production`
+    overrides it back off regardless of how it's set — a deployment that
+    declares itself production gets no escape hatch from this check, full
+    stop. Everywhere else (local dev, a test, a staging box that hasn't set
+    ENVIRONMENT), the flag behaves exactly as it always has.
     """
     from app.core.config import settings as app_settings
 
     if app_settings.JWT_SECRET_KEY != PLACEHOLDER_JWT_SECRET:
         return
+
+    if allow_insecure and is_production_environment():
+        raise RuntimeError(
+            "COPILOT_ALLOW_INSECURE_AUTH is set, but ENVIRONMENT=production. "
+            "The insecure-auth override does not apply in production — set "
+            f"{JWT_SECRET_ENV_VAR} to a real secret instead."
+        )
 
     if allow_insecure:
         logger.warning(
@@ -179,7 +228,11 @@ def create_production_app() -> FastAPI:
     The secret check lives here rather than in `build_application` on purpose:
     it is a property of deploying the service, and a test that assembles the
     app in-process should not have to care about the ambient environment.
+    Structured logging is configured here for the same reason — a test
+    capturing its own log output should not have the root logger's handlers
+    replaced out from under it.
     """
+    configure_structured_logging()
     settings = CopilotSettings.from_env()
     check_auth_secret(allow_insecure=settings.allow_insecure_auth)
     app, _ = build_application(settings)
